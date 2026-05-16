@@ -1,0 +1,26 @@
+## HerPath — Setup Instructions
+
+### Install & Run
+
+2. Install dependencies:
+   npm install
+
+3. Install recharts (if not already in package.json):
+   npm install recharts
+
+4. Start the dev server:
+   npm run dev
+
+5. Open your browser at:
+   http://localhost:5173
+
+### Project Structure
+   src/
+     App.jsx       — main component
+     assets/       — images (pink2.webp hero background)
+     index.css     — global styles
+     main.jsx      — entry point
+
+### Notes
+- The background image (pink2.webp) needs to be in src/assets/
+- All data is currently hardcoded — backend integration points are marked in App.jsx

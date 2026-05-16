@@ -4,6 +4,7 @@ import {
   Tooltip, ResponsiveContainer, BarChart, Bar, Legend,
 } from "recharts";
 import heroBg from "./assets/pink2.webp";
+import supabase from "./lib/supabaseClient"
 
 const C = {
   bg:       "#fff0f3",
@@ -145,6 +146,24 @@ export default function HerPath() {
   const manNow   = traj.find(d => d.age === curAge)?.man || p.salary;
   const gapPct   = Math.round((1 - p.salary / manNow) * 100);
   const lifetime = Math.round(traj.reduce((s, d) => s + Math.max(0, (d.man || 0) - (d.woman || 0)), 0));
+  
+  const handleAnalyze = async () => {
+    const { error } = await supabase
+      .from("user_inputs")
+      .insert([{
+        Age:                  parseInt(p.age),
+        Gender:               "Female",        // your app is women-focused
+        University_GPA:       null,            // not in your form, leave null
+        Current_Role:         p.role,
+        Internships_Completed: null,
+        Starting_Salary:      parseInt(p.salary),
+        Networking_Score:     null,
+        Years_to_Promotion:   null,
+        Current_Job_Level:    null,
+      }])
+    if (error) console.error("Supabase error:", error)
+      setStep(1)
+  }
 
   const inp = {
     background: "#fff", border: `1.5px solid ${C.border}`, borderRadius: 10,
@@ -280,7 +299,7 @@ export default function HerPath() {
                 </div>
               </div>
 
-              <button onClick={() => setStep(1)} style={{
+              <button onClick={handleAnalyze} style={{
                 width: "100%", background: C.rose, color: "#fff", border: "none",
                 borderRadius: 16, padding: "18px 32px", fontSize: 15, fontWeight: 600,
                 cursor: "pointer", fontFamily: "'DM Sans',sans-serif", letterSpacing: "0.02em",

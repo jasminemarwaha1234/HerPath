@@ -365,6 +365,12 @@ function ResultsNav({ active, setActive, onHome }) {
 //   const curAge = parseInt(p.age);
 //   const JOB_LEVEL_LABEL = JOB_LEVELS.find(j => j.value === p.job_level)?.label ?? "—";
 
+const LoadingOverlay = () => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 300, color: C.muted, fontFamily: "'DM Mono',monospace", fontSize: 12 }}>
+      Running model…
+    </div>
+  );
+  
   function StatsView({ traj, mlResult, mlLoading }) {
   const [tab, setTab] = useState("bar");
 
@@ -393,11 +399,11 @@ function ResultsNav({ active, setActive, onHome }) {
       }))
     : traj.map(d => ({ year: d.age, woman: d.woman, man: d.man }));
 
-  const LoadingOverlay = () => (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 300, color: C.muted, fontFamily: "'DM Mono',monospace", fontSize: 12 }}>
-      Running model…
-    </div>
-  );
+  // const LoadingOverlay = () => (
+  //   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 300, color: C.muted, fontFamily: "'DM Mono',monospace", fontSize: 12 }}>
+  //     Running model…
+  //   </div>
+  // );
 
   return (
     <div style={{ maxWidth: 860, margin: "0 auto", padding: "36px 24px 80px" }}>

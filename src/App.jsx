@@ -3,7 +3,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, BarChart, Bar, Legend,
 } from "recharts";
-import heroBg from "./assets/pink2.webp";
+// import heroBg from "./assets/pink2.webp";
 import supabase from "./lib/supabaseClient";
 import { ROLES } from "./roles.js";
 
@@ -756,7 +756,8 @@ export default function HerPath() {
     <div style={{
       minHeight: "100vh",
       width: "100%",
-      backgroundImage: `url(${heroBg})`,
+      // backgroundImage: `url(${heroBg})`,
+      backgroundImage: "url('/pink2.webp')",
       backgroundSize: "cover",
       backgroundPosition: "center",
       display: "flex", flexDirection: "column",
@@ -775,7 +776,7 @@ export default function HerPath() {
         <em style={{ color: C.rose, fontStyle: "italic" }}>Path</em>
       </h1>
       <p style={{ color: "#5a2535", fontSize: 15, fontFamily: "'DM Mono',monospace", maxWidth: 4000, lineHeight: 4, marginBottom: 36 }}>
-        find out how gender, life events, and hidden labor shape your salary and what to do about it.
+        Find out how gender, life events, and hidden labor shape your salary and what to do about it.
       </p>
       <button onClick={scrollToForm} style={{
         background: C.rose, color: "#fff", border: "none",

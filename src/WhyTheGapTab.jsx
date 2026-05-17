@@ -41,7 +41,6 @@ export default function WhyTheGapTab({ p, mlResult }) {
   const [messages, setMessages]   = useState([]);
   const [input, setInput]         = useState("");
   const [loading, setLoading]     = useState(false);
-  const [initializing, setInitializing] = useState(true);
   const feedRef                   = useRef(null);
 
   const userProfile = {
@@ -85,12 +84,8 @@ export default function WhyTheGapTab({ p, mlResult }) {
       console.error("Chat fetch error:", err);
     } finally {
       setLoading(false);
-      setInitializing(false);
     }
   };
-
-  // Fire opening summary on mount
-  useEffect(() => { callChat([]); }, []);
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -192,7 +187,7 @@ export default function WhyTheGapTab({ p, mlResult }) {
         </div>
 
         {/* ── Suggested Questions ── */}
-        {!initializing && messages.length <= 1 && !loading && (
+        {messages.length === 0 && !loading && (
           <div style={{
             padding: "0 24px 12px",
             display: "flex", flexWrap: "wrap", gap: 8,

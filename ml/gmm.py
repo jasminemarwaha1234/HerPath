@@ -262,6 +262,26 @@ def cluster_probabilities(gmm, scaler, age, university_gpa, internships_complete
     return {f"Cluster {i}": round(float(p), 4) for i, p in enumerate(probs)}
 
 
+def user_summary(gmm, scaler, age, university_gpa, internships_completed,
+                 networking_score, starting_salary, current_job_level, role):
+    """
+    Returns (female_dict, male_dict), each with:
+      prob        — promotion probability factoring in cluster gap score
+      base_salary — cluster-average starting salary for that gender
+    """
+    result  = predict_single(gmm, scaler, age, university_gpa, internships_completed,
+                             networking_score, starting_salary, current_job_level, role)
+    cluster = result['female']['cluster']
+
+    avg     = pd.read_csv(OUT_DIR / 'cluster_avg_salary.csv', index_col=0)
+    f_sal   = round(float(avg.loc[cluster, 'Female']), 2)
+    m_sal   = round(float(avg.loc[cluster, 'Male']),   2)
+
+    return (
+        {'prob': result['female']['promotion_prob'], 'base_salary': f_sal},
+        {'prob': result['male']['promotion_prob'],   'base_salary': m_sal},
+    )
+
 
 # ── Cluster characterisation ──────────────────────────────────────────────────
 
@@ -337,6 +357,10 @@ def gender_gap_analysis(df, gender_raw, labels):
     OUT_DIR.mkdir(exist_ok=True)
     scores_path = OUT_DIR / 'gender_gap_scores.csv'
     salary_by_gender.round(4).to_csv(scores_path)
+
+    avg_salary_path = OUT_DIR / 'cluster_avg_salary.csv'
+    salary_by_gender[['Female', 'Male']].round(2).to_csv(avg_salary_path)
+
     print(f"\nGender gap scores saved → {scores_path}")
     print(salary_by_gender[['raw_gap', 'gap_score']].round(4).to_string())
 

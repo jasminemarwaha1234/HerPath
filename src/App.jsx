@@ -963,7 +963,31 @@ export default function HerPath() {
 // ─────────────────────────────────────────────────────────────────────────────
 // FORM BODY (reusable for both initial + edit)
 // ─────────────────────────────────────────────────────────────────────────────
+const ERR_STYLE = { fontSize: 10, color: "#c4536a", fontFamily: "'DM Mono',monospace", marginTop: 4 };
+
 function FormBody({ p, set, onSubmit, submitLabel }) {
+  const [errors, setErrors] = useState({});
+
+  const validate = () => {
+    const e = {};
+    if (!p.name.trim())                          e.name           = "Required";
+    if (!p.age || parseInt(p.age) < 18)          e.age            = "Enter a valid age (18+)";
+    if (!p.zipcode.trim())                       e.zipcode        = "Required";
+    if (!p.specific_role.trim())                 e.specific_role  = "Required";
+    if (!p.starting_salary || parseInt(p.starting_salary) <= 0) e.starting_salary = "Enter a valid salary";
+    return e;
+  };
+
+  const handleSubmit = () => {
+    const e = validate();
+    setErrors(e);
+    if (Object.keys(e).length === 0) onSubmit();
+  };
+
+  const field = (key) => errors[key]
+    ? { ...INP, borderColor: "#c4536a" }
+    : INP;
+
   return (
     <>
       {/* Card 1: About you */}
@@ -971,16 +995,19 @@ function FormBody({ p, set, onSubmit, submitLabel }) {
         <h2 style={SECTION_HEAD}>About you </h2>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:18 }}>
           <div>
-            <label style={LBL}>First name</label>
-            <input style={INP} type="text" placeholder="e.g. Sarah" value={p.name} onChange={e => set("name", e.target.value)} />
+            <label style={LBL}>First name *</label>
+            <input style={field("name")} type="text" placeholder="e.g. Sarah" value={p.name} onChange={e => { set("name", e.target.value); setErrors(ev => ({ ...ev, name: undefined })); }} />
+            {errors.name && <div style={ERR_STYLE}>{errors.name}</div>}
           </div>
           <div>
-            <label style={LBL}>Age</label>
-            <input style={INP} type="number" min="18" max="65" placeholder="e.g. 24" value={p.age} onChange={e => set("age", e.target.value)} />
+            <label style={LBL}>Age *</label>
+            <input style={field("age")} type="number" min="18" max="65" placeholder="e.g. 24" value={p.age} onChange={e => { set("age", e.target.value); setErrors(ev => ({ ...ev, age: undefined })); }} />
+            {errors.age && <div style={ERR_STYLE}>{errors.age}</div>}
           </div>
           <div>
-            <label style={LBL}>ZIP code</label>
-            <input style={INP} type="text" placeholder="e.g. 94102" maxLength={10} value={p.zipcode} onChange={e => set("zipcode", e.target.value)} />
+            <label style={LBL}>ZIP code *</label>
+            <input style={field("zipcode")} type="text" placeholder="e.g. 94102" maxLength={10} value={p.zipcode} onChange={e => { set("zipcode", e.target.value); setErrors(ev => ({ ...ev, zipcode: undefined })); }} />
+            {errors.zipcode && <div style={ERR_STYLE}>{errors.zipcode}</div>}
           </div>
           <div>
             <label style={LBL}>Gender</label>
@@ -996,17 +1023,18 @@ function FormBody({ p, set, onSubmit, submitLabel }) {
           </div>
           {/* Role autocomplete */}
           <div style={{ gridColumn:"1 / -1", position:"relative" }}>
-            <label style={LBL}>Specific role / job title</label>
-            <input style={INP} type="text" placeholder="Type to search e.g. Software…"
+            <label style={LBL}>Specific role / job title *</label>
+            <input style={field("specific_role")} type="text" placeholder="Type to search e.g. Software…"
               value={p.specific_role}
-              onChange={e => set("specific_role", e.target.value)}
+              onChange={e => { set("specific_role", e.target.value); setErrors(ev => ({ ...ev, specific_role: undefined })); }}
               onBlur={() => setTimeout(() => set("_roleOpen", false), 150)}
               onFocus={() => set("_roleOpen", true)}
             />
+            {errors.specific_role && <div style={ERR_STYLE}>{errors.specific_role}</div>}
             {p._roleOpen && p.specific_role.length > 0 && (
               <div style={{ position:"absolute", top:"100%", left:0, right:0, zIndex:99, background:"#fff", border:`1.5px solid ${C.border}`, borderRadius:12, marginTop:4, boxShadow:"0 8px 24px #c4536a15", maxHeight:200, overflowY:"auto" }}>
                 {ROLES.filter(r => r.toLowerCase().includes(p.specific_role.toLowerCase())).map(r => (
-                  <div key={r} onMouseDown={() => set("specific_role", r)}
+                  <div key={r} onMouseDown={() => { set("specific_role", r); setErrors(ev => ({ ...ev, specific_role: undefined })); }}
                     style={{ padding:"10px 14px", fontSize:13, cursor:"pointer", color:C.text, fontFamily:"'DM Sans',sans-serif", borderBottom:`1px solid ${C.border}`, transition:"background 0.1s" }}
                     onMouseEnter={e => e.currentTarget.style.background = C.roseSoft}
                     onMouseLeave={e => e.currentTarget.style.background = "#fff"}
@@ -1031,9 +1059,10 @@ function FormBody({ p, set, onSubmit, submitLabel }) {
             </select>
           </div>
           <div style={{ gridColumn:"1 / -1" }}>
-            <label style={LBL}>Starting salary ($/yr)</label>
-            <input style={INP} type="number" placeholder="e.g. 75000" value={p.starting_salary || ""}
-              onChange={e => set("starting_salary", parseInt(e.target.value) || 0)} />
+            <label style={LBL}>Starting salary ($/yr) *</label>
+            <input style={field("starting_salary")} type="number" placeholder="e.g. 75000" value={p.starting_salary || ""}
+              onChange={e => { set("starting_salary", parseInt(e.target.value) || 0); setErrors(ev => ({ ...ev, starting_salary: undefined })); }} />
+            {errors.starting_salary && <div style={ERR_STYLE}>{errors.starting_salary}</div>}
           </div>
         </div>
       </div>
@@ -1057,20 +1086,16 @@ function FormBody({ p, set, onSubmit, submitLabel }) {
       {/* Card 4: Life circumstances */}
       <div style={CARD}>
         <h2 style={SECTION_HEAD}>Life circumstances </h2>
-        {/* <p style={{ fontSize:11, color:C.muted, fontFamily:"'DM Mono',monospace", marginBottom:20 }}>
-          These have measurable, documented impacts on salary trajectory.
-        </p> */}
         <div style={{ display:"flex", gap:12, marginBottom:12 }}>
-          <ToggleBtn  label="Are you currently married?"      active={p.married}   onClick={() => set("married",   !p.married)}   />
-          <ToggleBtn  label="Have you taken maternity leave?" active={p.leavePast} onClick={() => set("leavePast", !p.leavePast)} />
+          <ToggleBtn label="Are you currently married?"      active={p.married}   onClick={() => set("married",   !p.married)}   />
+          <ToggleBtn label="Have you taken maternity leave?" active={p.leavePast} onClick={() => set("leavePast", !p.leavePast)} />
         </div>
         <div style={{ display:"flex", gap:12 }}>
-          {/* <ToggleBtn icon="📅" label="Planning maternity leave soon?"  active={p.leaveSoon} onClick={() => set("leaveSoon", !p.leaveSoon)} /> */}
           <div style={{ flex:1 }} />
         </div>
       </div>
 
-      <button onClick={onSubmit} style={{
+      <button onClick={handleSubmit} style={{
         width:"100%", background:C.rose, color:"#fff", border:"none",
         borderRadius:16, padding:"18px 32px", fontSize:15, fontWeight:600,
         cursor:"pointer", fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.02em",
@@ -1078,9 +1103,6 @@ function FormBody({ p, set, onSubmit, submitLabel }) {
       }}>
         {submitLabel}
       </button>
-      {/* <p style={{ marginTop:14, fontSize:10, color:C.muted, fontFamily:"'DM Mono',monospace", textAlign:"center" }}>
-        Fields: Age · Gender · GPA · Role · Internships · Salary · Networking · Job Level
-      </p> */}
     </>
   );
 }

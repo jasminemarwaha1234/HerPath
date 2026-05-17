@@ -5,12 +5,15 @@ import {
 } from "recharts";
 import heroBg from "./assets/pink2.webp";
 import supabase from "./lib/supabaseClient";
+import { ROLES } from "./roles.js";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// DESIGN TOKENS
+// ─────────────────────────────────────────────────────────────────────────────
 const C = {
   bg:       "#fff0f3",
   bgSoft:   "#ffe4ea",
   card:     "#ffffff",
-  cardSoft: "#ffd6de",
   rose:     "#c4536a",
   roseDark: "#9e3a52",
   roseSoft: "#fce4ea",
@@ -23,14 +26,14 @@ const C = {
   man:      "#3a7ca5",
   woman:    "#c4536a",
   actual:   "#2d8c72",
+  nav:      "#fff6f8",
 };
 
-import { ROLES } from "./roles.js";
-
-
-// ── Dropdown options ──────────────────────────────────────────────────────────
-const GENDERS       = ["Female", "Male", "Non-binary / other"];
-const JOB_LEVELS    = [
+// ─────────────────────────────────────────────────────────────────────────────
+// CONSTANTS / DROPDOWN OPTIONS
+// ─────────────────────────────────────────────────────────────────────────────
+const GENDERS = ["Female", "Male", "Non-binary / other"];
+const JOB_LEVELS = [
   { value: 0, label: "0 — Student / pre-career" },
   { value: 1, label: "1 — Entry level"          },
   { value: 2, label: "2 — Mid level"            },
@@ -46,95 +49,172 @@ const INTERNSHIP_OPTIONS = [
 ];
 const FIELDS = ["Technology","Finance","Healthcare","Education","Marketing","Engineering","Law","Consulting"];
 
-// ── Trajectory model ──────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// HARDCODED JOB CARDS (backend: swap with LinkedIn API / your partner's endpoint)
+// ─────────────────────────────────────────────────────────────────────────────
+const HARDCODED_JOBS = [
+  {
+    id: 1,
+    title: "Senior SWE – Backend Platform",
+    company: "Stellarwave",
+    companyType: "Startup",
+    location: "San Francisco, CA",
+    workType: "Remote",
+    distance: "2.8 mi away",
+    match: 88,
+    // badge: "Salary transparent",
+    badgeColor: "#d4b8e0",
+    badgeText: "#7a5590",
+    posted: "5d ago",
+    womenAvg: 155000,
+    menAvg: 200000,
+    womenPct: 78,
+  },
+  {
+    id: 2,
+    title: "Senior SWE – Security & Identity",
+    company: "Equal Paths",
+    companyType: "Non-profit",
+    location: "San Francisco, CA",
+    workType: "Hybrid",
+    distance: "3.5 mi away",
+    match: 82,
+    // badge: "✓ Pay certified",
+    badgeColor: "#fce4ea",
+    badgeText: "#c4536a",
+    posted: "1d ago",
+    womenAvg: 172000,
+    menAvg: 195000,
+    womenPct: 88,
+  },
+  {
+    id: 3,
+    title: "Product Manager – Growth",
+    company: "Notion",
+    companyType: "Tech",
+    location: "New York, NY",
+    workType: "Hybrid",
+    distance: "1.2 mi away",
+    match: 79,
+    // badge: "Salary transparent",
+    badgeColor: "#d4b8e0",
+    badgeText: "#7a5590",
+    posted: "3d ago",
+    womenAvg: 148000,
+    menAvg: 175000,
+    womenPct: 85,
+  },
+  {
+    id: 4,
+    title: "Data Scientist – ML Platform",
+    company: "Spotify",
+    companyType: "Tech",
+    location: "Remote",
+    workType: "Remote",
+    distance: null,
+    match: 76,
+    // badge: "✓ Pay certified",
+    badgeColor: "#fce4ea",
+    badgeText: "#c4536a",
+    posted: "2d ago",
+    womenAvg: 138000,
+    menAvg: 162000,
+    womenPct: 85,
+  },
+  {
+    id: 5,
+    title: "Marketing Director",
+    company: "Glossier",
+    companyType: "Consumer",
+    location: "New York, NY",
+    workType: "On-site",
+    distance: "4.1 mi away",
+    match: 74,
+    badge: "Women-led",
+    badgeColor: "#d4f0e8",
+    badgeText: "#2d8c72",
+    posted: "5d ago",
+    womenAvg: 112000,
+    menAvg: 130000,
+    womenPct: 86,
+  },
+  {
+    id: 6,
+    title: "UX Research Lead",
+    company: "Figma",
+    companyType: "Tech",
+    location: "Remote",
+    workType: "Remote",
+    distance: null,
+    match: 71,
+    // badge: "Salary transparent",
+    badgeColor: "#d4b8e0",
+    badgeText: "#7a5590",
+    posted: "1w ago",
+    womenAvg: 140000,
+    menAvg: 168000,
+    womenPct: 83,
+  },
+  {
+    id: 7,
+    title: "Financial Analyst",
+    company: "Goldman Sachs",
+    companyType: "Finance",
+    location: "New York, NY",
+    workType: "On-site",
+    distance: "0.8 mi away",
+    match: 68,
+    badge: "Pay gap audit",
+    badgeColor: "#fce4ea",
+    badgeText: "#c4536a",
+    posted: "4d ago",
+    womenAvg: 95000,
+    menAvg: 125000,
+    womenPct: 76,
+  },
+  {
+    id: 8,
+    title: "Engineering Manager",
+    company: "Stripe",
+    companyType: "Fintech",
+    location: "San Francisco, CA",
+    workType: "Hybrid",
+    distance: "2.0 mi away",
+    match: 65,
+    // badge: "✓ Pay certified",
+    badgeColor: "#fce4ea",
+    badgeText: "#c4536a",
+    posted: "6d ago",
+    womenAvg: 195000,
+    menAvg: 230000,
+    womenPct: 85,
+  },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TRAJECTORY MODEL
+// ─────────────────────────────────────────────────────────────────────────────
 function genTrajectory(p) {
   const age    = parseInt(p.age) || 28;
   const start  = Math.max(18, age - 5);
   const salary = parseInt(p.starting_salary) || 60000;
   return Array.from({ length: 65 - start + 1 }, (_, i) => {
-    const a    = start + i;
-    const man  = Math.round(salary * Math.pow(1.065, i));
-    let woman  = Math.round(salary * Math.pow(1.045, i));
+    const a   = start + i;
+    const man = Math.round(salary * Math.pow(1.065, i));
+    let woman = Math.round(salary * Math.pow(1.045, i));
     if (p.leavePast && a >= age - 2 && a <= age + 2) woman = Math.round(woman * 0.935);
     if (p.leaveSoon && a >= age     && a <= age + 3) woman = Math.round(woman * 0.93);
     if (p.married   && a >= age)                     woman = Math.round(woman * 0.991);
-    const actual = a <= age
-      ? Math.round(salary * Math.pow(1.03, a - age))
-      : null;
+    const actual = a <= age ? Math.round(salary * Math.pow(1.03, a - age)) : null;
     return { age: a, man, woman, actual };
   });
 }
 
 const fmt = v => `$${Math.round(v / 1000)}k`;
 
-// ── Small UI atoms ────────────────────────────────────────────────────────────
-const Tag = ({ children, neg }) => (
-  <span style={{
-    background: neg ? "#fce4ea" : "#d4f0e8",
-    color: neg ? C.rose : C.mint,
-    borderRadius: 99, padding: "3px 11px",
-    fontSize: 10, fontFamily: "'DM Mono',monospace", whiteSpace: "nowrap",
-    border: `1px solid ${neg ? "#f0b8c4" : "#a8ddd0"}`,
-  }}>{children}</span>
-);
-
-const StatPill = ({ label, value, sub, accent }) => (
-  <div style={{
-    background: accent ? C.roseSoft : C.card,
-    border: `1.5px solid ${accent ? C.rose + "66" : C.border}`,
-    borderRadius: 18, padding: "18px 20px",
-    display: "flex", flexDirection: "column", gap: 4,
-  }}>
-    <span style={{ fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.13em", fontFamily: "'DM Mono',monospace" }}>{label}</span>
-    <span style={{ fontSize: 26, fontWeight: 800, color: accent ? C.rose : C.text, fontFamily: "'Cormorant Garamond',serif", lineHeight: 1.1 }}>{value}</span>
-    {sub && <span style={{ fontSize: 11, color: C.muted, fontFamily: "'DM Mono',monospace" }}>{sub}</span>}
-  </div>
-);
-
-const CustomTip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 16px", fontSize: 12, fontFamily: "'DM Mono',monospace", boxShadow: "0 4px 20px #c4536a15" }}>
-      <p style={{ color: C.muted, marginBottom: 6 }}>Age {label}</p>
-      {payload.map(p => p.value != null && (
-        <p key={p.name} style={{ color: p.color, margin: "2px 0" }}>{p.name}: {fmt(p.value)}</p>
-      ))}
-    </div>
-  );
-};
-
-const ToggleBtn = ({ icon, label, active, onClick }) => (
-  <button onClick={onClick} style={{
-    flex: 1, background: active ? C.roseSoft : "#fff",
-    border: `1.5px solid ${active ? C.rose : C.border}`,
-    borderRadius: 14, padding: "16px 18px", cursor: "pointer",
-    color: active ? C.roseDark : C.muted,
-    textAlign: "left", display: "flex", alignItems: "center", gap: 12,
-    fontSize: 13, fontFamily: "'DM Sans',sans-serif", transition: "all 0.15s",
-  }}>
-    <span style={{ fontSize: 22 }}>{icon}</span>{label}
-  </button>
-);
-
-// ── Reusable slider field ──────────────────────────────────────────────────────
-const SliderField = ({ label, hint, min, max, value, onChange, displayVal }) => (
-  <div>
-    <label style={LBL}>
-      {label}
-      <span style={{ float: "right", color: C.rose, fontWeight: 700, fontSize: 13 }}>
-        {displayVal ?? value}
-      </span>
-    </label>
-    <input
-      type="range" min={min} max={max} value={value}
-      onChange={e => onChange(Number(e.target.value))}
-      style={{ width: "100%", accentColor: C.rose, cursor: "pointer" }}
-    />
-    {hint && <div style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginTop: 3 }}>{hint}</div>}
-  </div>
-);
-
-// ── Shared styles ──────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// SHARED STYLES
+// ─────────────────────────────────────────────────────────────────────────────
 const INP = {
   background: "#fff", border: `1.5px solid ${C.border}`, borderRadius: 10,
   color: C.text, padding: "11px 14px", fontSize: 14,
@@ -162,564 +242,734 @@ const SECTION_HEAD = {
   fontSize: 22, fontWeight: 700, marginBottom: 20, color: C.text,
 };
 
-// ═════════════════════════════════════════════════════════════════════════════
+// ─────────────────────────────────────────────────────────────────────────────
+// SMALL COMPONENTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+
+const CustomTip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 16px", fontSize: 12, fontFamily: "'DM Mono',monospace", boxShadow: "0 4px 20px #c4536a15" }}>
+      <p style={{ color: C.muted, marginBottom: 6 }}>Age {label}</p>
+      {payload.map(p => p.value != null && (
+        <p key={p.name} style={{ color: p.color, margin: "2px 0" }}>{p.name}: {fmt(p.value)}</p>
+      ))}
+    </div>
+  );
+};
+
+const ToggleBtn = ({ icon, label, active, onClick }) => (
+  <button onClick={onClick} style={{
+    flex: 1, background: active ? C.roseSoft : "#fff",
+    border: `1.5px solid ${active ? C.rose : C.border}`,
+    borderRadius: 14, padding: "16px 18px", cursor: "pointer",
+    color: active ? C.roseDark : C.muted,
+    textAlign: "left", display: "flex", alignItems: "center", gap: 12,
+    fontSize: 13, fontFamily: "'DM Sans',sans-serif", transition: "all 0.15s",
+  }}>
+    <span style={{ fontSize: 22 }}>{icon}</span>{label}
+  </button>
+);
+
+const SliderField = ({ label, hint, min, max, value, onChange, displayVal }) => (
+  <div>
+    <label style={LBL}>
+      {label}
+      <span style={{ float: "right", color: C.rose, fontWeight: 700, fontSize: 13 }}>
+        {displayVal ?? value}
+      </span>
+    </label>
+    <input type="range" min={min} max={max} value={value}
+      onChange={e => onChange(Number(e.target.value))}
+      style={{ width: "100%", accentColor: C.rose, cursor: "pointer" }} />
+    {hint && <div style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginTop: 3 }}>{hint}</div>}
+  </div>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TOP NAV (results pages)
+// ─────────────────────────────────────────────────────────────────────────────
+function ResultsNav({ active, setActive, onHome }) {
+  const tabs = [
+    { id: "home",    label: "Home"      },
+    { id: "stats",  label: "My Stats"  },
+    { id: "linkedin", label: "Job Matches" },
+  ];
+  return (
+    <div style={{
+      position: "sticky", top: 0, zIndex: 100,
+      background: C.nav,
+      borderBottom: `1.5px solid ${C.border}`,
+      display: "flex", alignItems: "center",
+      padding: "0 32px",
+      backdropFilter: "blur(12px)",
+      boxShadow: "0 2px 20px #c4536a0c",
+    }}>
+      {/* Logo */}
+      <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 24, fontWeight: 800, color: C.text, paddingRight: 32, paddingTop: 14, paddingBottom: 14, letterSpacing: "-0.01em", borderRight: `1px solid ${C.border}`, marginRight: 8 }}>
+        Her<em style={{ color: C.rose, fontStyle: "italic" }}>Path</em>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 2, flex: 1 }}>
+        {tabs.map(t => {
+          const isActive = active === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => t.id === "home" ? onHome() : setActive(t.id)}
+              style={{
+                background: "none",
+                border: "none",
+                borderBottom: `2.5px solid ${isActive ? C.rose : "transparent"}`,
+                padding: "18px 20px 16px",
+                cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 8,
+                fontSize: 13,
+                fontFamily: "'DM Sans',sans-serif",
+                fontWeight: isActive ? 600 : 400,
+                color: isActive ? C.rose : C.muted,
+                transition: "all 0.15s",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <span style={{ fontSize: 16 }}>{t.icon}</span>
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Edit profile pill */}
+      <button
+        onClick={() => setActive("edit")}
+        style={{
+          background: "#fff", border: `1.5px solid ${C.border}`,
+          borderRadius: 99, padding: "7px 16px",
+          fontSize: 11, color: C.muted, cursor: "pointer",
+          fontFamily: "'DM Mono',monospace", whiteSpace: "nowrap",
+        }}
+      >
+        Edit profile
+      </button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STATS VIEW
+// ─────────────────────────────────────────────────────────────────────────────
+// function StatsView({ p, traj, manNow, gapPct, lifetime }) {
+//   const [tab, setTab] = useState("bar");
+//   const curAge = parseInt(p.age);
+//   const JOB_LEVEL_LABEL = JOB_LEVELS.find(j => j.value === p.job_level)?.label ?? "—";
+
+  function StatsView({ traj }) {
+  const [tab, setTab] = useState("bar");
+
+  const TABS = [
+  { id: "bar",     label: "Bar chart"  },
+  { id: "cluster",  label: "Cluster"    },
+  { id: "line",    label: "Line chart" },
+];
+
+  return (
+    <div style={{ maxWidth: 860, margin: "0 auto", padding: "36px 24px 80px" }}>
+
+
+      
+
+      {/* Tab bar */}
+<div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+  {TABS.map(t => (
+    <button key={t.id} onClick={() => setTab(t.id)} style={{
+      background: tab === t.id ? C.rose : "#fff",
+      border: `1.5px solid ${tab === t.id ? C.rose : C.border}`,
+      borderRadius: 99, padding: "8px 18px", fontSize: 12,
+      color: tab === t.id ? "#fff" : C.muted,
+      cursor: "pointer", fontFamily: "'DM Mono',monospace",
+      display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s",
+    }}>
+      {t.icon} {t.label}
+    </button>
+  ))}
+</div>
+
+{/* Tab panel */}
+<div style={{ background: "#fff", border: `1.5px solid ${C.border}`, borderRadius: 24, padding: 28, boxShadow: "0 2px 24px #c4536a0a" }}>
+
+  {/* ── BAR CHART ── */}
+  {tab === "bar" && <>
+  <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 30, fontWeight: 700, marginBottom: 4, color: C.text }}>
+    Tech industry insights
+  </h3>
+  <p style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 24 }}>
+    Men vs. women by role in tech
+  </p>
+
+  <div style={{ display: "flex", flexDirection: "column", gap: 40 }}>
+
+    {/* Base salary */}
+<ResponsiveContainer width="100%" height={300}>
+  <BarChart
+    data={[{ label: "Avg Base Salary", women: 105000, men: 138000 }]}
+    margin={{ top: 8, right: 16, left: 0, bottom: 20 }}
+  >
+    <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+    <XAxis dataKey="label" tick={{ fill: C.muted, fontSize: 12 }} />
+    <YAxis tickFormatter={fmt} tick={{ fill: C.muted, fontSize: 11 }} />
+    <Tooltip contentStyle={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 10 }} formatter={(v, name) => [fmt(v), name]} />
+    <Legend wrapperStyle={{ fontSize: 12, color: C.muted, paddingTop: 8 }} />
+    <Bar dataKey="women" name="Women" fill={C.woman} radius={[6, 6, 0, 0]} opacity={0.85} />
+    <Bar dataKey="men"   name="Men"   fill={C.man}   radius={[6, 6, 0, 0]} opacity={0.7}  />
+  </BarChart>
+</ResponsiveContainer>
+
+{/* Promotion probability */}
+<ResponsiveContainer width="100%" height={300}>
+  <BarChart
+    data={[{ label: "Promotion Probability", women: 31, men: 49 }]}
+    margin={{ top: 8, right: 16, left: 0, bottom: 20 }}
+  >
+    <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+    <XAxis dataKey="label" tick={{ fill: C.muted, fontSize: 12 }} />
+    <YAxis domain={[0, 100]} tickFormatter={v => `${v}%`} tick={{ fill: C.muted, fontSize: 11 }} />
+    <Tooltip contentStyle={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 10 }} formatter={(v, name) => [`${v}%`, name]} />
+    <Legend wrapperStyle={{ fontSize: 12, color: C.muted, paddingTop: 8 }} />
+    <Bar dataKey="women" name="Women" fill={C.woman} radius={[6, 6, 0, 0]} opacity={0.85} />
+    <Bar dataKey="men"   name="Men"   fill={C.man}   radius={[6, 6, 0, 0]} opacity={0.7}  />
+  </BarChart>
+</ResponsiveContainer>
+    </div>
+
+
+</>}
+
+  {/* ── CLUSTER ── */}
+  {tab === "cluster" && <>
+    <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 700, marginBottom: 4, color: C.text }}>
+      Salary cluster analysis
+    </h3>
+    <p style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 20 }}>
+      Placeholder · Replace with ML model cluster output
+    </p>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", background: C.roseSoft, borderRadius: 16, height: 320, border: `1px solid ${C.border}` }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 48, marginBottom: 12 }}>🔵</div>
+        <p style={{ fontFamily: "'DM Mono',monospace", fontSize: 12, color: C.muted }}>Cluster image goes here</p>
+        <p style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: C.border, marginTop: 6 }}>[ drop in your cluster plot image ]</p>
+      </div>
+    </div>
+  </>}
+
+  {/* ── LINE CHART ── */}
+  {tab === "line" && <>
+    <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 700, marginBottom: 4, color: C.text }}>
+      Salary over time
+    </h3>
+    <p style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 20 }}>
+      Projected salary trajectory: men vs women 
+    </p>
+    <ResponsiveContainer width="100%" height={280}>
+      <AreaChart data={traj} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+        <defs>
+          {[["wG", C.woman], ["mG", C.man]].map(([id, col]) => (
+            <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%"  stopColor={col} stopOpacity={0.2} />
+              <stop offset="95%" stopColor={col} stopOpacity={0} />
+            </linearGradient>
+          ))}
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+        <XAxis dataKey="age" tick={{ fill: C.muted, fontSize: 11 }} />
+        <YAxis tickFormatter={fmt} tick={{ fill: C.muted, fontSize: 11 }} />
+        <Tooltip content={<CustomTip />} />
+        <Area type="monotone" dataKey="man"   stroke={C.man}   fill="url(#mG)" strokeWidth={2}   name="Men"   dot={false} />
+        <Area type="monotone" dataKey="woman" stroke={C.woman} fill="url(#wG)" strokeWidth={2.5} name="Women" dot={false} />
+      </AreaChart>
+    </ResponsiveContainer>
+    <div style={{ display: "flex", gap: 18, marginTop: 14, flexWrap: "wrap" }}>
+      {[[C.man, "Men"], [C.woman, "Women"]].map(([col, l]) => (
+        <div key={l} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: C.muted }}>
+          <div style={{ width: 18, height: 2.5, background: col, borderRadius: 2 }} />{l}
+        </div>
+      ))}
+    </div>
+  </>}
+
+</div>
+
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LINKEDIN / JOB MATCHES VIEW
+// ─────────────────────────────────────────────────────────────────────────────
+function LinkedInView({ p }) {
+  const [filter, setFilter] = useState("All");
+  const filters = ["All", "Remote", "Hybrid", "On-site"];
+
+  const filtered = filter === "All"
+    ? HARDCODED_JOBS
+    : HARDCODED_JOBS.filter(j => j.workType === filter);
+
+  const yourGap = (job) => job.menAvg - job.womenAvg;
+
+  const workTypeIcon = (type) => ({ Remote: "🌐", Hybrid: "🏠", "On-site": "🏢", Startup: "🚀", "Non-profit": "🤝" }[type] || "📍");
+
+  return (
+    <div style={{ width: "100%", padding: "36px 40px 80px", boxSizing: "border-box" }}>
+
+      {/* Header */}
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 32, fontWeight: 800, margin: "0 0 6px", color: C.text }}>
+          Job Matches For {p.name || "You"} 
+        </h2>
+        <p style={{ fontSize: 12, color: C.muted, fontFamily: "'DM Mono',monospace", display: "flex", alignItems: "center", gap: 8 }}>
+          {/* {p.zipcode ? `Near ${p.zipcode} · ` : ""}Ranked by pay equity · hardcoded placeholder */}
+          {/* <span style={{ background: C.roseSoft, color: C.rose, borderRadius: 99, padding: "2px 10px", border: `1px solid ${C.border}`, fontSize: 10 }}>
+            Backend: connect /api/jobs
+          </span> */}
+        </p>
+      </div>
+
+      {/* Filter pills */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+        {filters.map(f => (
+          <button key={f} onClick={() => setFilter(f)} style={{
+            background: filter === f ? C.rose : "#fff",
+            border: `1.5px solid ${filter === f ? C.rose : C.border}`,
+            borderRadius: 99, padding: "7px 18px", fontSize: 12,
+            color: filter === f ? "#fff" : C.muted,
+            cursor: "pointer", fontFamily: "'DM Mono',monospace",
+            transition: "all 0.15s",
+          }}>{f}</button>
+        ))}
+      </div>
+
+      {/* 2-column grid — fills the full width */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+        {filtered.map(job => (
+          <div key={job.id} style={{
+            background: "#fff",
+            border: `1.5px solid ${C.border}`,
+            borderRadius: 20,
+            padding: 24,
+            boxShadow: "0 2px 16px #c4536a08",
+            transition: "box-shadow 0.2s, transform 0.2s",
+            cursor: "pointer",
+            display: "flex", flexDirection: "column", gap: 14,
+          }}
+            onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 8px 28px #c4536a18"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+            onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 2px 16px #c4536a08"; e.currentTarget.style.transform = "translateY(0)"; }}
+          >
+            {/* Top: title + badges */}
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 8 }}>
+                <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 19, fontWeight: 700, color: C.text, margin: 0, lineHeight: 1.25 }}>
+                  {job.title}
+                </h3>
+                <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  {/* <span style={{
+                    background: job.badgeColor, color: job.badgeText,
+                    borderRadius: 99, padding: "3px 10px", fontSize: 10,
+                    fontFamily: "'DM Mono',monospace", whiteSpace: "nowrap",
+                    border: `1px solid ${job.badgeText}22`,
+                  }}>{job.badge}</span> */}
+                  <span style={{
+                    background: job.match >= 80 ? "#d4f0e8" : C.roseSoft,
+                    color: job.match >= 80 ? "#2d8c72" : C.rose,
+                    borderRadius: 99, padding: "3px 10px", fontSize: 10,
+                    fontFamily: "'DM Mono',monospace", fontWeight: 700,
+                    border: `1px solid ${job.match >= 80 ? "#a8ddd0" : C.border}`,
+                    whiteSpace: "nowrap",
+                  }}>{job.match}% match</span>
+                </div>
+              </div>
+              {/* Company + location */}
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <span style={{ fontSize: 13, color: C.rose, fontWeight: 600 }}>{job.company}</span>
+                <span style={{ color: C.muted }}>·</span>
+                <span style={{ fontSize: 12, color: C.muted }}>{job.location}</span>
+                {job.distance && <><span style={{ color: C.muted }}>·</span><span style={{ fontSize: 12, color: C.muted }}>{job.distance}</span></>}
+              </div>
+            </div>
+
+            {/* Salary comparison box */}
+            <div style={{ background: C.roseSoft, borderRadius: 14, padding: "14px 16px", border: `1px solid ${C.border}` }}>
+              <p style={{ fontSize: 9, color: C.muted, fontFamily: "'DM Mono',monospace", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>
+                {/* Salary comparison · {job.title.split("–")[0].trim()} at this company */}
+              </p>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+
+  {/* Women avg column */}
+  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "12px 8px", background: "#fff", borderRight: `1px solid ${C.border}` }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6, justifyContent: "center" }}>
+      {/* <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.rose, flexShrink: 0 }} /> */}
+      <span style={{ fontSize: 18, color: C.muted, fontFamily: "'Cormorant Garamond',serif" }}>Women avg</span>
+    </div>
+    <div style={{ fontSize: 26, fontWeight: 800, color: C.text, fontFamily: "'Cormorant Garamond',serif", lineHeight: 1 }}>{fmt(job.womenAvg)}</div>
+  </div>
+
+  {/* Men avg column */}
+  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "12px 8px", background: "#fff", borderRight: `1px solid ${C.border}` }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6, justifyContent: "center" }}>
+      {/* <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#a89ac4", flexShrink: 0 }} /> */}
+      <span style={{ fontSize: 18, color: C.muted, fontFamily: "'Cormorant Garamond',serif" }}>Men avg</span>
+    </div>
+    <div style={{ fontSize: 26, fontWeight: 800, color: C.text, fontFamily: "'Cormorant Garamond',serif", lineHeight: 1 }}>{fmt(job.menAvg)}</div>
+  </div>
+
+  {/* Your gap column */}
+  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "12px 8px", background: "#fff" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6, justifyContent: "center" }}>
+      {/* <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.rose, opacity: 0.5, flexShrink: 0 }} /> */}
+      <span style={{ fontSize: 18, color: C.muted, fontFamily: "'Cormorant Garamond',serif" }}>Your gap</span>
+    </div>
+    <div style={{ fontSize: 26, fontWeight: 800, color: C.rose, fontFamily: "'Cormorant Garamond',serif", lineHeight: 1 }}>{fmt(yourGap(job))}/yr</div>
+  </div>
+
+</div>
+            </div>
+
+            {/* Bottom: icons + apply */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ display: "flex", gap: 18, flex: 1 }}>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 17 }}>{workTypeIcon(job.companyType)}</div>
+                  <div style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace" }}>{job.companyType}</div>
+                </div>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 17 }}>{workTypeIcon(job.workType)}</div>
+                  <div style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace" }}>{job.workType}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: C.muted }}>Posted</div>
+                  <div style={{ fontSize: 12, color: C.text, fontWeight: 500 }}>{job.posted}</div>
+                </div>
+              </div>
+              <button style={{
+                background: C.rose, color: "#fff", border: "none",
+                borderRadius: 10, padding: "10px 18px", fontSize: 13,
+                fontWeight: 600, cursor: "pointer",
+                fontFamily: "'DM Sans',sans-serif", whiteSpace: "nowrap",
+              }}
+                onMouseEnter={e => e.currentTarget.style.background = C.roseDark}
+                onMouseLeave={e => e.currentTarget.style.background = C.rose}
+              >Apply →</button>
+            </div>
+          </div>
+        ))}
+
+        {filtered.length === 0 && (
+          <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 0", color: C.muted, fontFamily: "'DM Mono',monospace", fontSize: 13 }}>
+            No {filter} jobs in the hardcoded set yet — backend will populate this.
+          </div>
+        )}
+      </div>
+
+      {/* Backend note */}
+      {/* <div style={{ marginTop: 28, background: "#fff", border: `1.5px solid ${C.border}`, borderRadius: 16, padding: "16px 20px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+        <span style={{ fontSize: 20 }}>🔧</span>
+        <div>
+          <p style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4, fontFamily: "'Cormorant Garamond',serif" }}>For your partner (backend)</p>
+          <p style={{ fontSize: 11, color: C.muted, fontFamily: "'DM Mono',monospace", lineHeight: 1.6 }}>
+            Replace HARDCODED_JOBS with: GET /api/jobs?field={p.field}&level={p.job_level}&zipcode={p.zipcode || "—"}<br/>
+            womenAvg / menAvg / womenPct = pull from Glassdoor, Levels.fyi, or your ML model<br/>
+            match % = your recommendation model output
+          </p>
+        </div>
+      </div> */}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN APP
+// ─────────────────────────────────────────────────────────────────────────────
 export default function HerPath() {
-  const [step, setStep]         = useState(0);
-  const [tab,  setTab]          = useState("trajectory");
-  // const [heroVisible, setHV]    = useState(true);
-  const [heroVisible, setHV] = useState(sessionStorage.getItem("started") !== "true");
-  const formRef                 = useRef(null);
+  const [heroVisible, setHV]  = useState(sessionStorage.getItem("started") !== "true");
+  const [formStep, setFormStep] = useState(0);   // 0 = form, 1 = results
+  const [resultsTab, setResultsTab] = useState("stats"); // stats | linkedin | edit
+  const formRef = useRef(null);
 
-  // ── Form state matches Kaggle schema exactly ──────────────────────────────
   const [p, setP] = useState({
-    // personal / display
-    name:              "",
-    // Kaggle fields
-    age:               22,
-    gender:            "Female",
-    gpa:               3.5,           // University_GPA  (0.0–4.0)
-    field:             "Technology",  // Field_of_Study / industry
-    specific_role:     "",            // Specific_Role
-    internships:       0,             // Internships_Completed (0–4)
-    starting_salary:   60000,         // Starting_Salary
-    networking_score:  5,             // Networking_Score (1–10)
-    job_level:         1,             // Current_Job_Level (0–4)
-    // life events (affect trajectory model)
-    married:           false,
-    leavePast:         false,
-    leaveSoon:         false,
+    name: "", age: 22, gender: "Female", gpa: 3.5,
+    field: "Technology", specific_role: "", internships: 0,
+    starting_salary: 60000, networking_score: 5, job_level: 1,
+    married: false, leavePast: false, leaveSoon: false,
+    zipcode: "",
   });
-
   const set = (key, val) => setP(prev => ({ ...prev, [key]: val }));
 
-  // ── Font load ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    window.scrollTo(0, 0); 
+    window.scrollTo(0, 0);
     window.addEventListener("beforeunload", () => sessionStorage.removeItem("started"));
     const l = document.createElement("link");
-    l.rel  = "stylesheet";
+    l.rel = "stylesheet";
     l.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,700;0,800;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap";
     document.head.appendChild(l);
   }, []);
 
-  // useEffect(() => {
-  //   document.body.style.overflow            = heroVisible ? "hidden" : "auto";
-  //   document.documentElement.style.overflow = heroVisible ? "hidden" : "auto";
-  // }, [heroVisible]);
+  const scrollToForm = () => {
+    sessionStorage.setItem("started", "true");
+    setHV(false);
+    setFormStep(0);
+    window.scrollTo(0, 0);
+  };
 
-//   useEffect(() => {
-//   setHV(true);
-//   setStep(0);
-//   window.scrollTo(0, 0);
-// }, []);
+  const goHome = () => {
+    sessionStorage.removeItem("started");
+    setHV(true);
+    setFormStep(0);
+    window.scrollTo(0, 0);
+  };
 
-  // const scrollToForm = () => {
-  //   formRef.current?.scrollIntoView({ behavior: "smooth" });
-  //   setTimeout(() => setHV(false), 800);
-  // };
-//   const scrollToForm = () => {
-//   setHV(false);
-//   //setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
-  
-// };
-const scrollToForm = () => {
-  sessionStorage.setItem("started", "true");
-  setHV(false);
-};
-
-  // ── Derived stats ──────────────────────────────────────────────────────────
+  // Derived stats
   const traj     = genTrajectory(p);
   const curAge   = parseInt(p.age);
   const manNow   = traj.find(d => d.age === curAge)?.man || p.starting_salary;
   const gapPct   = Math.round((1 - p.starting_salary / manNow) * 100);
-  const lifetime = Math.round(traj.reduce((s, d) => s + Math.max(0, (d.man || 0) - (d.woman || 0)), 0));
+  const lifetime = Math.round(traj.reduce((s, d) => s + Math.max(0, (d.man||0) - (d.woman||0)), 0));
 
-  const JOB_LEVEL_LABEL = JOB_LEVELS.find(j => j.value === p.job_level)?.label ?? "—";
-
-  // ── Supabase submit ────────────────────────────────────────────────────────
   const handleAnalyze = async () => {
-    const { error } = await supabase
-      .from("user_inputs")
-      .insert([{
-        Age:                   parseInt(p.age),
-        Gender:                p.gender,
-        University_GPA:        parseFloat(p.gpa),
-        Current_Role:          p.specific_role || null,
-        Internships_Completed: parseInt(p.internships),
-        Starting_Salary:       parseInt(p.starting_salary),
-        Networking_Score:      parseInt(p.networking_score),
-        Current_Job_Level:     parseInt(p.job_level),
-      }]);
+    const { error } = await supabase.from("user_inputs").insert([{
+      Age: parseInt(p.age), Gender: p.gender,
+      University_GPA: parseFloat(p.gpa),
+      Current_Role: p.specific_role || null,
+      Internships_Completed: parseInt(p.internships),
+      Starting_Salary: parseInt(p.starting_salary),
+      Networking_Score: parseInt(p.networking_score),
+      Current_Job_Level: parseInt(p.job_level),
+    }]);
     if (error) console.error("Supabase error:", error);
-    setStep(1);
+    setFormStep(1);
+    setResultsTab("stats");
+    window.scrollTo(0, 0);
   };
 
-  // ── Life events timeline ───────────────────────────────────────────────────
-  const lifeEvents = [
-    p.married   && { age: curAge - 2, icon: "💍", label: "Marriage",                impact: "−2–3% trajectory",  neg: true  },
-    p.leavePast && { age: curAge - 1, icon: "🤱", label: "Maternity leave (taken)", impact: "−7% on return",     neg: true  },
-    p.leavePast && { age: curAge,     icon: "📋", label: "Post-leave reassignment", impact: "+12% admin load",   neg: true  },
-    p.leaveSoon && { age: curAge + 1, icon: "📅", label: "Planned maternity leave", impact: "−7–12% projected",  neg: true  },
-                   { age: curAge + 3, icon: "📈", label: "Promotion window",        impact: "Critical moment",   neg: false },
-  ].filter(Boolean);
+  // ── HERO ──
+  if (heroVisible) return (
+    <div style={{
+      minHeight: "100vh",
+      width: "100%",
+      backgroundImage: `url(${heroBg})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      padding: "60px 32px 48px", textAlign: "center",
+      flexShrink: 0,
+    }}>
+      <style>{`@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(8px)} }`}</style>
+      <h1 style={{
+        fontFamily: "'Cormorant Garamond',serif",
+        fontSize: "clamp(230px, 14vw, 130px)",
+        fontWeight: 800, lineHeight: 1.0,
+        margin: "0 0 16px",
+      }}>
+        <span style={{ color: "#fff" }}>Her</span>
+        <em style={{ color: C.rose, fontStyle: "italic" }}>Path</em>
+      </h1>
+      <p style={{ color: "#5a2535", fontSize: 15, fontFamily: "'DM Mono',monospace", maxWidth: 4000, lineHeight: 4, marginBottom: 36 }}>
+        find out how gender, life events, and hidden labor shape your salary and what to do about it.
+      </p>
+      <button onClick={scrollToForm} style={{
+        background: C.rose, color: "#fff", border: "none",
+        borderRadius: 99, padding: "14px 36px",
+        fontSize: 14, fontWeight: 600, cursor: "pointer",
+        fontFamily: "'DM Sans',sans-serif", letterSpacing: "0.02em",
+      }}>
+        Get started
+      </button>
+      <div style={{ marginTop: 28, fontSize: 20, color: "#c4536a88", animation: "bounce 2s infinite" }}>↓</div>
+    </div>
+  );
 
-  const TABS = [
-    { id: "trajectory", icon: "📈", label: "Trajectory"  },
-    { id: "life",       icon: "🌸", label: "Life events" },
-    { id: "tasks",      icon: "📋", label: "Task load"   },
-  ];
+  // ── RESULTS (with nav) ──
+  if (formStep === 1) return (
+    <div style={{ minHeight:"100vh", background:C.bg, color:C.text, fontFamily:"'DM Sans',sans-serif" }}>
+      <style>{`input:focus, select:focus { border-color:#c4536a !important; } select option { background:#fff; color:#3d1a24; }`}</style>
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  return (
-    <div style={{ minHeight: "100vh", width: "100%", background: C.bg, color: C.text, fontFamily: "'DM Sans',sans-serif" }}>
-      <style>{`
-        @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(8px)} }
-        select option { background:#fff; color:#3d1a24; }
-        input:focus, select:focus { border-color:#c4536a !important; }
-        input[type=range]::-webkit-slider-thumb { accent-color: #c4536a; }
-        html { scroll-behavior: auto; }
-      `}</style>
+      <ResultsNav
+        active={resultsTab}
+        setActive={setResultsTab}
+        onHome={goHome}
+      />
 
-      {/* ── HERO ── */}
-      {heroVisible && (
-        <div style={{
-          minHeight: "100vh",
-          width: "100%",
-          backgroundImage: `url(${heroBg})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          display: "flex", flexDirection: "column",
-          alignItems: "center", justifyContent: "center",
-          padding: "60px 32px 48px", textAlign: "center",
-          flexShrink: 0,
-        }}>
-          <h1 style={{
-            fontFamily: "'Cormorant Garamond',serif",
-            fontSize: "clamp(230px, 14vw, 130px)",
-            fontWeight: 800, lineHeight: 1.0,
-            margin: "0 0 16px",
-          }}>
-            <span style={{ color: "#fff" }}>Her</span>
-            <em style={{ color: C.rose, fontStyle: "italic" }}>Path</em>
-          </h1>
-          <p style={{ color: "#5a2535", fontSize: 15, fontFamily: "'DM Mono',monospace", maxWidth: 4000, lineHeight: 4, marginBottom: 36 }}>
-            find out how gender, life events, and hidden labor shape your salary and what to do about it.
-          </p>
-          <button onClick={scrollToForm} style={{
-            background: C.rose, color: "#fff", border: "none",
-            borderRadius: 99, padding: "14px 36px",
-            fontSize: 14, fontWeight: 600, cursor: "pointer",
-            fontFamily: "'DM Sans',sans-serif", letterSpacing: "0.02em",
-          }}>
-            Get started
-          </button>
-          <div style={{ marginTop: 28, fontSize: 20, color: "#c4536a88", animation: "bounce 2s infinite" }}>↓</div>
-        </div>
+      {resultsTab === "stats" && (
+        <StatsView p={p} traj={traj} manNow={manNow} gapPct={gapPct} lifetime={lifetime} />
       )}
 
-      {/* ── FORM + RESULTS ── */}
-      {!heroVisible && <div ref={formRef} style={{ background: C.bg, padding: "64px 20px 80px", minHeight: "100vh" }}>
-        <div style={{ maxWidth: 860, margin: "0 auto" }}>
+      {resultsTab === "linkedin" && (
+        <LinkedInView p={p} />
+      )}
 
-          {/* ══════════════ STEP 0 — FORM ══════════════ */}
-          {step === 0 && (
-            <>
-
-              {/* ── Card 1: About you ── */}
-              <div style={CARD}>
-                <h2 style={SECTION_HEAD}>About you 🌷</h2>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
-
-                  {/* Name */}
-                  <div>
-                    <label style={LBL}>First name</label>
-                    <input style={INP} type="text" placeholder="e.g. Sarah"
-                      value={p.name} onChange={e => set("name", e.target.value)} />
-                  </div>
-
-                  {/* Age */}
-                  <div>
-                    <label style={LBL}>Age</label>
-                    <input style={INP} type="number" min="18" max="65" placeholder="e.g. 24"
-                      value={p.age} onChange={e => set("age", e.target.value)} />
-                  </div>
-
-                  {/* Gender */}
-                  <div>
-                    <label style={LBL}>Gender</label>
-                    <select style={SEL} value={p.gender} onChange={e => set("gender", e.target.value)}>
-                      {GENDERS.map(g => <option key={g}>{g}</option>)}
-                    </select>
-                  </div>
-
-                  {/* Field of study / industry */}
-                  <div>
-                    <label style={LBL}>Field / industry</label>
-                    <select style={SEL} value={p.field} onChange={e => set("field", e.target.value)}>
-                      {FIELDS.map(f => <option key={f}>{f}</option>)}
-                    </select>
-                  </div>
-
-                  {/* Specific role
-                  <div style={{ gridColumn: "1 / -1" }}>
-                    <label style={LBL}>Specific role / job title</label>
-                    <input style={INP} type="text" placeholder="e.g. Software Engineer, Product Manager…"
-                      value={p.specific_role} onChange={e => set("specific_role", e.target.value)} />
-                  </div> */}
-                  {/* Specific role */}
-<div style={{ gridColumn: "1 / -1", position: "relative" }}>
-  <label style={LBL}>Specific role / job title</label>
-  <input style={INP} type="text" placeholder="Type to search e.g. Software…"
-    value={p.specific_role}
-    onChange={e => set("specific_role", e.target.value)}
-    onBlur={() => setTimeout(() => set("_roleOpen", false), 150)}
-    onFocus={() => set("_roleOpen", true)}
-  />
-  {p._roleOpen && p.specific_role.length > 0 && (
-    <div style={{
-      position: "absolute", top: "100%", left: 0, right: 0, zIndex: 99,
-      background: "#fff", border: `1.5px solid ${C.border}`,
-      borderRadius: 12, marginTop: 4,
-      boxShadow: "0 8px 24px #c4536a15", maxHeight: 200, overflowY: "auto",
-    }}>
-      {ROLES.filter(r => r.toLowerCase().includes(p.specific_role.toLowerCase()))
-        .map(r => (
-          <div key={r}
-            onMouseDown={() => set("specific_role", r)}
-            style={{
-              padding: "10px 14px", fontSize: 13, cursor: "pointer",
-              color: C.text, fontFamily: "'DM Sans',sans-serif",
-              borderBottom: `1px solid ${C.border}`,
-              transition: "background 0.1s",
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = C.roseSoft}
-            onMouseLeave={e => e.currentTarget.style.background = "#fff"}
-          >
-            {r}
-          </div>
-        ))}
-    </div>
-  )}
-</div>
-
-                </div>
-              </div>
-
-              {/* ── Card 2: Academic & career baseline ── */}
-              <div style={CARD}>
-                <h2 style={SECTION_HEAD}>Academic & career baseline 🎓</h2>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-
-                  {/* GPA slider */}
-                  <SliderField
-                    label="University GPA"
-                    hint="0.0 – 4.0 scale"
-                    min={0} max={40} value={Math.round(p.gpa * 10)}
-                    onChange={v => set("gpa", v / 10)}
-                    displayVal={p.gpa.toFixed(1)}
-                  />
-
-                  {/* Internships */}
-                  <div>
-                    <label style={LBL}>Internships completed</label>
-                    <select style={SEL} value={p.internships}
-                      onChange={e => set("internships", parseInt(e.target.value))}>
-                      {INTERNSHIP_OPTIONS.map(o => (
-                        <option key={o.value} value={o.value}>{o.label}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Starting salary */}
-                  <div style={{ gridColumn: "1 / -1" }}>
-                    <label style={LBL}>Starting salary ($/yr)</label>
-                    <input style={INP} type="number" placeholder="e.g. 75000"
-                      value={p.starting_salary || ""}
-                      onChange={e => set("starting_salary", parseInt(e.target.value) || 0)} />
-                  </div>
-
-                </div>
-              </div>
-
-              {/* ── Card 3: Career position ── */}
-              <div style={CARD}>
-                <h2 style={SECTION_HEAD}>Career position 📊</h2>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-
-                  {/* Current job level */}
-                  <div>
-                    <label style={LBL}>Current job level</label>
-                    <select style={SEL} value={p.job_level}
-                      onChange={e => set("job_level", parseInt(e.target.value))}>
-                      {JOB_LEVELS.map(o => (
-                        <option key={o.value} value={o.value}>{o.label}</option>
-                      ))}
-                    </select>
-                    <div style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginTop: 4 }}>
-                      Career stages: Entry → Mid → Senior → Executive
-                    </div>
-                  </div>
-
-                  {/* Networking score */}
-                  <SliderField
-                    label="Networking score"
-                    hint="1 = low activity · 10 = highly connected (LinkedIn, events, etc.)"
-                    min={1} max={10} value={p.networking_score}
-                    onChange={v => set("networking_score", v)}
-                  />
-
-                </div>
-              </div>
-
-              {/* ── Card 4: Life circumstances ── */}
-              <div style={CARD}>
-                <h2 style={SECTION_HEAD}>Life circumstances 🌸</h2>
-                <p style={{ fontSize: 11, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 20 }}>
-                  These have measurable, documented impacts on salary trajectory.
-                </p>
-                <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
-                  <ToggleBtn icon="💍" label="Are you currently married?"      active={p.married}   onClick={() => set("married",   !p.married)}   />
-                  <ToggleBtn icon="🤱" label="Have you taken maternity leave?" active={p.leavePast} onClick={() => set("leavePast", !p.leavePast)} />
-                </div>
-                <div style={{ display: "flex", gap: 12 }}>
-                  <ToggleBtn icon="📅" label="Planning maternity leave soon?"  active={p.leaveSoon} onClick={() => set("leaveSoon", !p.leaveSoon)} />
-                  <div style={{ flex: 1 }} />
-                </div>
-              </div>
-
-              {/* ── Submit ── */}
-              <button onClick={handleAnalyze} style={{
-                width: "100%", background: C.rose, color: "#fff", border: "none",
-                borderRadius: 16, padding: "18px 32px", fontSize: 15, fontWeight: 600,
-                cursor: "pointer", fontFamily: "'DM Sans',sans-serif", letterSpacing: "0.02em",
-                boxShadow: "0 4px 20px #c4536a33", transition: "background 0.2s",
-              }}>
-                Analyze my trajectory →
-              </button>
-
-              {/* schema hint for devs */}
-              <p style={{ marginTop: 14, fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", textAlign: "center" }}>
-                Fields: Age · Gender · University_GPA · Specific_Role · Internships_Completed · Starting_Salary · Networking_Score · Current_Job_Level
-              </p>
-            </>
-          )}
-
-          {/* ══════════════ STEP 1 — RESULTS ══════════════ */}
-          {step === 1 && (
-            <>
-              <button onClick={() => setStep(0)} style={{
-                background: "#fff", border: `1.5px solid ${C.border}`, borderRadius: 99,
-                padding: "7px 18px", fontSize: 11, color: C.muted,
-                cursor: "pointer", fontFamily: "'DM Mono',monospace", marginBottom: 20,
-              }}>
-                ← Edit profile
-              </button>
-
-              <p style={{ fontSize: 11, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 16 }}>
-                {p.name ? `${p.name}'s` : "Your"} analysis · {p.field} · {p.specific_role || "your role"} · {JOB_LEVEL_LABEL}
-              </p>
-
-              {/* Stats */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 24 }}>
-                <StatPill label="Starting salary"        value={fmt(p.starting_salary)} sub={p.specific_role || "your role"} />
-                <StatPill label="Gap vs. male peer"      value={`−${gapPct}%`}          sub={`${fmt(manNow)} avg for men`}   accent />
-                <StatPill label="Projected lifetime loss" value={fmt(lifetime)}          sub="vs. male trajectory"            accent />
-              </div>
-
-              {/* Profile summary chips */}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
-                {[
-                  `GPA ${p.gpa.toFixed(1)}`,
-                  `${p.internships} internship${p.internships !== 1 ? "s" : ""}`,
-                  `Networking ${p.networking_score}/10`,
-                  JOB_LEVEL_LABEL.split("—")[1]?.trim() || "Entry level",
-                ].map(chip => (
-                  <span key={chip} style={{
-                    background: "#fff", border: `1px solid ${C.border}`,
-                    borderRadius: 99, padding: "4px 12px",
-                    fontSize: 11, color: C.muted, fontFamily: "'DM Mono',monospace",
-                  }}>
-                    {chip}
-                  </span>
-                ))}
-              </div>
-
-              {/* Tabs */}
-              <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-                {TABS.map(t => (
-                  <button key={t.id} onClick={() => setTab(t.id)} style={{
-                    background: tab === t.id ? C.rose : "#fff",
-                    border: `1.5px solid ${tab === t.id ? C.rose : C.border}`,
-                    borderRadius: 99, padding: "8px 18px", fontSize: 12,
-                    color: tab === t.id ? "#fff" : C.muted,
-                    cursor: "pointer", fontFamily: "'DM Mono',monospace",
-                    display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s",
-                  }}>
-                    {t.icon} {t.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Tab content */}
-              <div style={{ background: "#fff", border: `1.5px solid ${C.border}`, borderRadius: 24, padding: 28, boxShadow: "0 2px 24px #c4536a0a" }}>
-
-                {/* TRAJECTORY TAB */}
-                {tab === "trajectory" && (
-                  <>
-                    <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 700, marginBottom: 4, color: C.text }}>
-                      Salary trajectory to retirement
-                    </h3>
-                    <p style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 20 }}>
-                      Modeled using BLS growth rates + gender gap research · Starting from ${p.starting_salary.toLocaleString()}
-                    </p>
-                    <ResponsiveContainer width="100%" height={280}>
-                      <AreaChart data={traj} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                        <defs>
-                          {[["wG", C.woman], ["mG", C.man], ["aG", C.actual]].map(([id, col]) => (
-                            <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%"  stopColor={col} stopOpacity={0.2} />
-                              <stop offset="95%" stopColor={col} stopOpacity={0}   />
-                            </linearGradient>
-                          ))}
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                        <XAxis dataKey="age" tick={{ fill: C.muted, fontSize: 11 }} />
-                        <YAxis tickFormatter={fmt} tick={{ fill: C.muted, fontSize: 11 }} />
-                        <Tooltip content={<CustomTip />} />
-                        <Area type="monotone" dataKey="man"    stroke={C.man}    fill="url(#mG)" strokeWidth={2}   name="Man (same role)"   dot={false} />
-                        <Area type="monotone" dataKey="woman"  stroke={C.woman}  fill="url(#wG)" strokeWidth={2.5} name="Woman (modeled)"    dot={false} />
-                        <Area type="monotone" dataKey="actual" stroke={C.actual} fill="url(#aG)" strokeWidth={2}   name="Your current pace" dot={false} connectNulls={false} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                    <div style={{ display: "flex", gap: 18, marginTop: 14, flexWrap: "wrap" }}>
-                      {[[C.man,"Man — same role"],[C.woman,"Woman (modeled)"],[C.actual,"Your pace"]].map(([col, l]) => (
-                        <div key={l} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: C.muted }}>
-                          <div style={{ width: 18, height: 2.5, background: col, borderRadius: 2 }} />{l}
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                {/* LIFE EVENTS TAB */}
-                {tab === "life" && (
-                  <>
-                    <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 700, marginBottom: 4, color: C.text }}>
-                      Life events & career impact
-                    </h3>
-                    <p style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 24 }}>
-                      How marriage, maternity leave & expectations shape your salary pace
-                    </p>
-                    <div style={{ position: "relative", paddingLeft: 30 }}>
-                      <div style={{ position: "absolute", left: 12, top: 0, bottom: 0, width: 1, background: C.border }} />
-                      {lifeEvents.map((evt, i) => (
-                        <div key={i} style={{ marginBottom: 24, position: "relative" }}>
-                          <div style={{ position: "absolute", left: -24, top: 2, width: 20, height: 20, borderRadius: "50%", background: C.roseSoft, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>
-                            {evt.icon}
-                          </div>
-                          <div style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 3 }}>Age {evt.age}</div>
-                          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 5, color: C.text }}>{evt.label}</div>
-                          <Tag neg={evt.neg}>{evt.impact}</Tag>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ background: C.roseSoft, borderRadius: 16, padding: 20, marginTop: 10, border: `1px solid ${C.border}` }}>
-                      <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 18, fontWeight: 700, marginBottom: 14, color: C.text }}>
-                        The motherhood penalty — by the numbers
-                      </p>
-                      {[
-                        ["Avg salary drop on return from leave",  "−7%",    "HBR / BLS"],
-                        ["Promotion speed after first child",      "−23%",   "McKinsey Women in the Workplace"],
-                        ["Likelihood assigned admin tasks",         "+34%",   "LeanIn.org"],
-                        ["Lifetime gap vs. child-free women",      "−$400k", "U.S. Census Bureau"],
-                      ].map(([l, v, s]) => (
-                        <div key={l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${C.border}` }}>
-                          <div>
-                            <div style={{ fontSize: 13, color: C.text }}>{l}</div>
-                            <div style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginTop: 2 }}>Source: {s}</div>
-                          </div>
-                          <span style={{ fontSize: 20, fontWeight: 800, color: C.rose, fontFamily: "'Cormorant Garamond',serif", minWidth: 70, textAlign: "right" }}>{v}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                {/* TASKS TAB */}
-                {tab === "tasks" && (
-                  <>
-                    <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 700, marginBottom: 4, color: C.text }}>
-                      Task distribution
-                    </h3>
-                    <p style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 22 }}>
-                      % of work time on non-promotable tasks — same role, same level
-                    </p>
-                    <ResponsiveContainer width="100%" height={210}>
-                      <BarChart layout="vertical" margin={{ left: 10, right: 10 }}
-                        data={[
-                          { task: "Core role work",     w: 62, m: 80 },
-                          { task: "Admin / scheduling", w: 14, m: 8  },
-                          { task: "Meeting notes",      w: 9,  m: 4  },
-                          { task: "Emotional support",  w: 8,  m: 8  },
-                          { task: "Event planning",     w: 7,  m: 2  },
-                        ]}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
-                        <XAxis type="number" domain={[0, 100]} tick={{ fill: C.muted, fontSize: 11 }} />
-                        <YAxis type="category" dataKey="task" tick={{ fill: C.text, fontSize: 11 }} width={150} />
-                        <Tooltip contentStyle={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 10, color: C.text }} />
-                        <Legend wrapperStyle={{ fontSize: 12, color: C.muted }} />
-                        <Bar dataKey="w" name="Woman" fill={C.woman} radius={[0, 7, 7, 0]} opacity={0.85} />
-                        <Bar dataKey="m" name="Man"   fill={C.man}   radius={[0, 7, 7, 0]} opacity={0.7}  />
-                      </BarChart>
-                    </ResponsiveContainer>
-                    <div style={{ marginTop: 24 }}>
-                      <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 18, fontWeight: 700, marginBottom: 14, color: C.text }}>
-                        Tasks disproportionately assigned to women
-                      </p>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                        {[
-                          ["Taking meeting notes",      "~2 hrs/wk"],
-                          ["Planning office events",    "~1.5 hrs/wk"],
-                          ["Onboarding new staff",      "~3 hrs/wk"],
-                          ["Emotional labor / support", "~2 hrs/wk"],
-                          ["Scheduling & coordination", "~1 hr/wk"],
-                          ["Administrative overflow",   "~2.5 hrs/wk"],
-                        ].map(([task, time]) => (
-                          <div key={task} style={{ background: C.roseSoft, border: `1px solid ${C.border}`, borderRadius: 12, padding: "11px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: 12, color: C.text }}>{task}</span>
-                            <span style={{ background: "#fff", color: C.rose, borderRadius: 99, padding: "3px 10px", fontSize: 10, fontFamily: "'DM Mono',monospace", border: `1px solid ${C.border}` }}>{time}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Insight strip */}
-              <div style={{ marginTop: 20, background: C.roseSoft, border: `1.5px solid ${C.border}`, borderRadius: 20, padding: "20px 26px", display: "flex", gap: 14, alignItems: "flex-start" }}>
-                <span style={{ fontSize: 26, lineHeight: 1 }}>💌</span>
-                <div>
-                  <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 5, fontFamily: "'Cormorant Garamond',serif", color: C.text }}>
-                    Key insight for {p.name || "you"}
-                  </p>
-                  <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.65 }}>
-                    In <strong style={{ color: C.text }}>{p.field}</strong>, you're earning an estimated{" "}
-                    <strong style={{ color: C.rose }}>−{gapPct}%</strong> vs. a male peer with equal experience.
-                    {p.leavePast ? " Past maternity leave is modeled to have reduced your trajectory by ~7%." : ""}
-                    {p.leaveSoon ? " Upcoming leave may widen this gap by 7–12% over the next few years." : ""}
-                    {" "}A networking score of <strong style={{ color: C.text }}>{p.networking_score}/10</strong>{" "}
-                    {p.networking_score >= 7 ? "puts you in a strong position to leverage connections." : "— increasing this to 8+ is one of the highest-ROI career moves you can make."}{" "}
-                    Negotiating at your next review could recover{" "}
-                    <strong style={{ color: C.mint }}>{fmt(manNow * 0.05)}–{fmt(manNow * 0.12)}</strong>/yr.
-                  </p>
-                </div>
-              </div>
-            </>
-          )}
-
+      {resultsTab === "edit" && (
+        <div style={{ maxWidth:860, margin:"0 auto", padding:"36px 24px 80px" }}>
+          <button onClick={() => setResultsTab("stats")} style={{
+            background:"#fff", border:`1.5px solid ${C.border}`, borderRadius:99,
+            padding:"7px 18px", fontSize:11, color:C.muted,
+            cursor:"pointer", fontFamily:"'DM Mono',monospace", marginBottom:24,
+          }}>← Back to stats</button>
+          <p style={{ fontSize:12, color:C.muted, fontFamily:"'DM Mono',monospace", marginBottom:8 }}>Editing your profile — changes will re-run the model.</p>
+          {/* Re-render the form inline */}
+          <FormBody p={p} set={set} onSubmit={() => { handleAnalyze(); setResultsTab("stats"); }} submitLabel="Update my analysis →" />
         </div>
-      </div>}
+      )}
     </div>
+  );
+
+  // ── FORM ──
+  return (
+    <div style={{ minHeight:"100vh", background:C.bg, color:C.text, fontFamily:"'DM Sans',sans-serif" }}>
+      <style>{`input:focus, select:focus { border-color:#c4536a !important; } select option { background:#fff; color:#3d1a24; } input[type=range]::-webkit-slider-thumb { accent-color:#c4536a; }`}</style>
+      {/* Mini nav */}
+      <div style={{ background:C.nav, borderBottom:`1.5px solid ${C.border}`, padding:"14px 32px", display:"flex", alignItems:"center", gap:12 }}>
+        <button onClick={goHome} style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, color:C.rose }}>←</button>
+        <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:24, fontWeight:800, color:C.text }}>
+          Her<em style={{ color:C.rose, fontStyle:"italic" }}>Path</em>
+        </span>
+      </div>
+      <div ref={formRef} style={{ maxWidth:860, margin:"0 auto", padding:"48px 24px 80px" }}>
+        <div style={{ marginBottom:36 }}>
+          <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:34, fontWeight:800, margin:"0 0 8px", color:C.text }}>
+            Tell us about yourself 🌷
+          </h2>
+          <p style={{ fontSize:12, color:C.muted, fontFamily:"'DM Mono',monospace" }}>
+            Your answers stay private — we use them to model your salary trajectory.
+          </p>
+        </div>
+        <FormBody p={p} set={set} onSubmit={handleAnalyze} submitLabel="Analyze my trajectory →" />
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FORM BODY (reusable for both initial + edit)
+// ─────────────────────────────────────────────────────────────────────────────
+function FormBody({ p, set, onSubmit, submitLabel }) {
+  return (
+    <>
+      {/* Card 1: About you */}
+      <div style={CARD}>
+        <h2 style={SECTION_HEAD}>About you 🌷</h2>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:18 }}>
+          <div>
+            <label style={LBL}>First name</label>
+            <input style={INP} type="text" placeholder="e.g. Sarah" value={p.name} onChange={e => set("name", e.target.value)} />
+          </div>
+          <div>
+            <label style={LBL}>Age</label>
+            <input style={INP} type="number" min="18" max="65" placeholder="e.g. 24" value={p.age} onChange={e => set("age", e.target.value)} />
+          </div>
+          <div>
+            <label style={LBL}>ZIP code</label>
+            <input style={INP} type="text" placeholder="e.g. 94102" maxLength={10} value={p.zipcode} onChange={e => set("zipcode", e.target.value)} />
+          </div>
+          <div>
+            <label style={LBL}>Gender</label>
+            <select style={SEL} value={p.gender} onChange={e => set("gender", e.target.value)}>
+              {GENDERS.map(g => <option key={g}>{g}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={LBL}>Field / industry</label>
+            <select style={SEL} value={p.field} onChange={e => set("field", e.target.value)}>
+              {FIELDS.map(f => <option key={f}>{f}</option>)}
+            </select>
+          </div>
+          {/* Role autocomplete */}
+          <div style={{ gridColumn:"1 / -1", position:"relative" }}>
+            <label style={LBL}>Specific role / job title</label>
+            <input style={INP} type="text" placeholder="Type to search e.g. Software…"
+              value={p.specific_role}
+              onChange={e => set("specific_role", e.target.value)}
+              onBlur={() => setTimeout(() => set("_roleOpen", false), 150)}
+              onFocus={() => set("_roleOpen", true)}
+            />
+            {p._roleOpen && p.specific_role.length > 0 && (
+              <div style={{ position:"absolute", top:"100%", left:0, right:0, zIndex:99, background:"#fff", border:`1.5px solid ${C.border}`, borderRadius:12, marginTop:4, boxShadow:"0 8px 24px #c4536a15", maxHeight:200, overflowY:"auto" }}>
+                {ROLES.filter(r => r.toLowerCase().includes(p.specific_role.toLowerCase())).map(r => (
+                  <div key={r} onMouseDown={() => set("specific_role", r)}
+                    style={{ padding:"10px 14px", fontSize:13, cursor:"pointer", color:C.text, fontFamily:"'DM Sans',sans-serif", borderBottom:`1px solid ${C.border}`, transition:"background 0.1s" }}
+                    onMouseEnter={e => e.currentTarget.style.background = C.roseSoft}
+                    onMouseLeave={e => e.currentTarget.style.background = "#fff"}
+                  >{r}</div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Card 2: Academic & career baseline */}
+      <div style={CARD}>
+        <h2 style={SECTION_HEAD}>Academic & career baseline </h2>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:24 }}>
+          <SliderField label="University GPA" hint="0.0 – 4.0 scale" min={0} max={40}
+            value={Math.round(p.gpa * 10)} onChange={v => set("gpa", v / 10)} displayVal={p.gpa.toFixed(1)} />
+          <div>
+            <label style={LBL}>Internships completed</label>
+            <select style={SEL} value={p.internships} onChange={e => set("internships", parseInt(e.target.value))}>
+              {INTERNSHIP_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+          <div style={{ gridColumn:"1 / -1" }}>
+            <label style={LBL}>Starting salary ($/yr)</label>
+            <input style={INP} type="number" placeholder="e.g. 75000" value={p.starting_salary || ""}
+              onChange={e => set("starting_salary", parseInt(e.target.value) || 0)} />
+          </div>
+        </div>
+      </div>
+
+      {/* Card 3: Career position */}
+      <div style={CARD}>
+        <h2 style={SECTION_HEAD}>Career position </h2>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:24 }}>
+          <div>
+            <label style={LBL}>Current job level</label>
+            <select style={SEL} value={p.job_level} onChange={e => set("job_level", parseInt(e.target.value))}>
+              {JOB_LEVELS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <div style={{ fontSize:10, color:C.muted, fontFamily:"'DM Mono',monospace", marginTop:4 }}>Entry → Mid → Senior → Executive</div>
+          </div>
+          <SliderField label="Networking score" hint="1 = low · 10 = highly connected" min={1} max={10}
+            value={p.networking_score} onChange={v => set("networking_score", v)} />
+        </div>
+      </div>
+
+      {/* Card 4: Life circumstances */}
+      <div style={CARD}>
+        <h2 style={SECTION_HEAD}>Life circumstances 🌸</h2>
+        <p style={{ fontSize:11, color:C.muted, fontFamily:"'DM Mono',monospace", marginBottom:20 }}>
+          These have measurable, documented impacts on salary trajectory.
+        </p>
+        <div style={{ display:"flex", gap:12, marginBottom:12 }}>
+          <ToggleBtn icon="💍" label="Are you currently married?"      active={p.married}   onClick={() => set("married",   !p.married)}   />
+          <ToggleBtn icon="🤱" label="Have you taken maternity leave?" active={p.leavePast} onClick={() => set("leavePast", !p.leavePast)} />
+        </div>
+        <div style={{ display:"flex", gap:12 }}>
+          <ToggleBtn icon="📅" label="Planning maternity leave soon?"  active={p.leaveSoon} onClick={() => set("leaveSoon", !p.leaveSoon)} />
+          <div style={{ flex:1 }} />
+        </div>
+      </div>
+
+      <button onClick={onSubmit} style={{
+        width:"100%", background:C.rose, color:"#fff", border:"none",
+        borderRadius:16, padding:"18px 32px", fontSize:15, fontWeight:600,
+        cursor:"pointer", fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.02em",
+        boxShadow:"0 4px 20px #c4536a33",
+      }}>
+        {submitLabel}
+      </button>
+      {/* <p style={{ marginTop:14, fontSize:10, color:C.muted, fontFamily:"'DM Mono',monospace", textAlign:"center" }}>
+        Fields: Age · Gender · GPA · Role · Internships · Salary · Networking · Job Level
+      </p> */}
+    </>
   );
 }

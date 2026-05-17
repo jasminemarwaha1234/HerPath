@@ -37,7 +37,15 @@ sys.path.insert(0, str(Path(__file__).parent))
 import joblib
 import pandas as pd
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from typing import List
+from supabase import create_client
+import os
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).parent.parent / ".env")
+supabase = create_client(os.environ["VITE_SUPABASE_URL"], os.environ["VITE_SUPABASE_ANON_KEY"])
+
 
 import gmm as gmmlib
 import helpers
@@ -77,6 +85,8 @@ class AnalysisResult(BaseModel):
     gap_score:          float
     female:             dict
     male:               dict
+    female_timeline:    List[dict]
+    male_timeline:      List[dict]
     bar_chart_path:     str
     line_chart_path:    str
     cluster_image_path: str
@@ -137,11 +147,30 @@ def analyze_user(
         user_out_dir, df=_df,
     )
 
+      # 5 — save to Supabase
+    supabase.table("user_inputs").insert({
+        "age":                   age,
+        "gender":                gender,
+        "university_gpa":        university_gpa,
+        "current_role":          current_role,
+        "internships_completed": internships_completed,
+        "starting_salary":       starting_salary,
+        "networking_score":      networking_score,
+        "current_job_level":     current_job_level,
+        "cluster":               cluster,
+        "gap_score":             gap_score,
+        "female_prob":           female_summary.get("promotion_prob"),
+        "male_prob":             male_summary.get("promotion_prob"),
+        "cluster_image_path":    str(cluster_path),
+    }).execute()
+
     return {
         'cluster':            cluster,
         'gap_score':          gap_score,
         'female':             female_summary,
         'male':               male_summary,
+        'female_timeline':    female_timeline,
+        'male_timeline':      male_timeline,
         'bar_chart_path':     str(bar_path),
         'line_chart_path':    str(line_path),
         'cluster_image_path': str(cluster_path),
@@ -151,6 +180,13 @@ def analyze_user(
 # ── FastAPI app ───────────────────────────────────────────────────────────────
 
 app = FastAPI(title='HerPath ML API')
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.post('/analyze', response_model=AnalysisResult)

@@ -79,6 +79,7 @@ async def jobs(
             "menAvg":      men_avg,
             "womenPct":    women_pct,
             "url":         j.get("url"),
+            "zipcode":     zipcode or None,
         })
 
     cache.set(cache_key, result)

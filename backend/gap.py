@@ -1,3 +1,4 @@
+from __future__ import annotations
 from .roles import resolve_role, city_multiplier
 
 

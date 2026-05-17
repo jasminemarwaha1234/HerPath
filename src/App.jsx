@@ -830,15 +830,49 @@ export default function HerPath() {
       setMlLoading(false);
     }
 
+    const scoreJobs = async (jobList, role, zipcode) => {
+      const scored = await Promise.all(
+        jobList.map(async job => {
+          try {
+            const r = await fetch("/ml-api/score_job", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                job_info:  { title: job.title, womenAvg: job.womenAvg, menAvg: job.menAvg, zipcode: job.zipcode, posted: job.posted },
+                user_info: { current_role: role, zipcode: zipcode || null },
+              }),
+            });
+            if (r.ok) {
+              const { score } = await r.json();
+              return { ...job, match: Math.round(score * 100) };
+            }
+          } catch (_) {}
+          return job;
+        })
+      );
+      scored.sort((a, b) => b.match - a.match);
+      return scored;
+    };
+
     try {
       const role    = p.specific_role || p.field;
-      const jobsRes = await fetch(`/api/jobs?role=${encodeURIComponent(role)}&zipcode=${encodeURIComponent(p.zipcode || "")}`);
+      const userZip = p.zipcode || "";
+      const jobsRes = await fetch(`/api/jobs?role=${encodeURIComponent(role)}&zipcode=${encodeURIComponent(userZip)}`);
       if (jobsRes.ok) {
         const data = await jobsRes.json();
-        if (data.length > 0) setJobs(data);
+        if (data.length > 0) {
+          setJobs(await scoreJobs(data, role, userZip));
+        } else {
+          setJobs(await scoreJobs(HARDCODED_JOBS, role, userZip));
+        }
+      } else {
+        setJobs(await scoreJobs(HARDCODED_JOBS, p.specific_role || p.field, p.zipcode || ""));
       }
     } catch (err) {
       console.error("Jobs API unreachable:", err);
+      try {
+        setJobs(await scoreJobs(HARDCODED_JOBS, p.specific_role || p.field, p.zipcode || ""));
+      } catch (_) {}
     }
   };
 

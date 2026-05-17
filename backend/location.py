@@ -2,6 +2,7 @@
 Resolve a user-entered ZIP code or city string to structured location data.
 Uses Zippopotam.us for ZIPs — no API key needed.
 """
+from __future__ import annotations
 import re
 import httpx
 

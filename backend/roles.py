@@ -5,6 +5,7 @@ national_median: BLS OEWS 2023 annual wage (all workers)
 gender_ratio: women's median earnings as a fraction of men's
               Source: BLS Highlights of Women's Earnings 2023
 """
+from __future__ import annotations
 
 ROLES = {
     "software engineer": {

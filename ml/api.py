@@ -30,6 +30,7 @@ Run:  uvicorn api:app --reload  (from the ml/ directory)
       pip install fastapi uvicorn
 """
 
+from __future__ import annotations
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -40,7 +41,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 import httpx
 import os
 from dotenv import load_dotenv
@@ -51,6 +52,7 @@ _SUPABASE_KEY = os.environ["VITE_SUPABASE_ANON_KEY"]
 
 import gmm as gmmlib
 import helpers
+import score_job as score_job_lib
 
 # ── constants ─────────────────────────────────────────────────────────────────
 
@@ -92,6 +94,28 @@ class AnalysisResult(BaseModel):
     bar_chart_path:     str
     line_chart_path:    str
     cluster_image_path: str
+
+
+class JobInfo(BaseModel):
+    title:     str
+    womenAvg:  Optional[float] = None
+    menAvg:    Optional[float] = None
+    zipcode:   Optional[str]   = None
+    posted:    Optional[str]   = None
+
+
+class UserInfo(BaseModel):
+    current_role: str
+    zipcode:      Optional[str] = None
+
+
+class JobScoreInput(BaseModel):
+    job_info:  JobInfo
+    user_info: UserInfo
+
+
+class JobScoreResult(BaseModel):
+    score: float
 
 
 # ── core analysis function ────────────────────────────────────────────────────
@@ -213,5 +237,26 @@ def analyze(user: UserInput):
             networking_score=user.Networking_Score,
             current_job_level=user.Current_Job_Level,
         )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post('/score_job', response_model=JobScoreResult)
+def score_job(body: JobScoreInput):
+    try:
+        score = score_job_lib.score_job(
+            job_info={
+                "title":    body.job_info.title,
+                "womenAvg": body.job_info.womenAvg,
+                "menAvg":   body.job_info.menAvg,
+                "zipcode":  body.job_info.zipcode,
+                "posted":   body.job_info.posted,
+            },
+            user_info={
+                "current_role": body.user_info.current_role,
+                "zipcode":      body.user_info.zipcode,
+            },
+        )
+        return {"score": score}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc

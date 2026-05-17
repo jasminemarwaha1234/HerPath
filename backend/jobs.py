@@ -2,6 +2,7 @@
 Fetch individual job listings from Adzuna and JSearch.
 Each listing includes title, company, salary, level, work type, posted date, etc.
 """
+from __future__ import annotations
 import os
 import re
 from datetime import datetime, timezone

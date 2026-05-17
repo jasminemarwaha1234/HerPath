@@ -24,7 +24,7 @@ PARAM_GRID = {
 
 
 def curr_probability(role):
-    df = pd.read_csv("data/US_information_technology.csv")
+    df = pd.read_csv(Path(__file__).parent.parent / 'data' / 'US_information_technology.csv')
     role_df = df[df["from"] == role]
     if role_df.empty:
         return 0.5
@@ -154,7 +154,7 @@ def promotion_chain(role, gmm, scaler, age, university_gpa, internships_complete
     Walk the most likely promotion path from role (highest-frequency next role at each step)
     where promotion_prob >= 0.8. Returns a flat list: [{'from', 'to', 'female_prob', 'male_prob'}, ...]
     """
-    it_df   = pd.read_csv("data/US_information_technology.csv")
+    it_df   = pd.read_csv(Path(__file__).parent.parent / 'data' / 'US_information_technology.csv')
     chain   = []
     visited = set()
     current = role

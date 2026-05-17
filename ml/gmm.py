@@ -140,11 +140,41 @@ def predict_single(gmm, scaler, age, university_gpa, internships_completed,
     gap_score   = round(float(scores.loc[cluster, 'gap_score']), 4)
     base_prob   = curr_probability(role) #custom function 
 
-    female_prob = round(np.clip(0.7 * base_prob - 0.3 * gap_score, 0.0, 1.0), 4)
-    male_prob   = round(np.clip(0.7 * base_prob + 0.3 * gap_score, 0.0, 1.0), 4)
+    female_prob = round(float(np.clip(0.7 * base_prob - 0.3 * gap_score, 0.0, 1.0)), 4)
+    male_prob   = round(float(np.clip(0.7 * base_prob + 0.3 * gap_score, 0.0, 1.0)), 4)
 
     return {'female': {'cluster': cluster, 'base_salary': starting_salary, 'gap_score': gap_score, 'promotion_prob': female_prob},
             'male': {'cluster': cluster, 'base_salary': starting_salary, 'gap_score': gap_score, 'promotion_prob': male_prob}}
+
+def promotion_chain(role, gmm, scaler, age, university_gpa, internships_completed,
+                    networking_score, starting_salary, current_job_level):
+    """
+    Walk the most likely promotion path from role (highest-frequency next role at each step)
+    where promotion_prob >= 0.8. Returns a flat list: [{'from', 'to', 'female_prob', 'male_prob'}, ...]
+    """
+    it_df   = pd.read_csv("data/US_information_technology.csv")
+    chain   = []
+    visited = set()
+    current = role
+
+    while current not in visited:
+        role_df = it_df[(it_df["from"] == current) & (it_df["promotion_prob"] >= 0.8)]
+        if role_df.empty:
+            break
+        visited.add(current)
+        next_role = role_df.loc[role_df["frequency"].idxmax(), "to"]
+        probs     = predict_single(gmm, scaler, age, university_gpa, internships_completed,
+                                   networking_score, starting_salary, current_job_level, current)
+        chain.append({
+            'from':        current,
+            'to':          next_role,
+            'female_prob': probs['female']['promotion_prob'],
+            'male_prob':   probs['male']['promotion_prob'],
+        })
+        current = next_role
+
+    return chain
+
 
 def cluster_probabilities(gmm, scaler, age, university_gpa, internships_completed,
                           networking_score, starting_salary, current_job_level):
@@ -266,21 +296,13 @@ def plot_gender_gap(gap_df, all_clusters, gap_scores):
     plt.tight_layout()
     plt.show()
 
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
     df                    = load_data()
     X, scaler, gender_raw = preprocess(df)
-
-    gmm, results_df = load_or_train(X, scaler)
-    labels          = predict_batch(X, gmm)
-    best_row        = results_df.iloc[0]
-
-    print(f"\nBest config → n={int(best_row.n_components)}, "
-          f"cov='{best_row.covariance_type}', "
-          f"init='{best_row.init_params}' | BIC={best_row.bic:.1f}")
-
-    gap_df, all_clusters, gap_scores = gender_gap_analysis(df, gender_raw, labels)
+    gmm, _                = load_or_train(X, scaler)
 
     sample = {
         'age': 23,
@@ -292,16 +314,6 @@ if __name__ == '__main__':
         'role': 'Software Engineer',
     }
 
-    promo_probs = predict_single(gmm, scaler, **sample)
+    #promo_probs = predict_single(gmm, scaler, **sample)
+    promo_probs = promotion_chain(sample['role'], gmm, scaler, **{k: v for k, v in sample.items() if k != 'role'})
     print(f"Promotion probabilities → {promo_probs}")
-
-    probs = cluster_probabilities(
-        gmm, scaler,
-        age=23, university_gpa=3.5, internships_completed=2,
-        networking_score=7, starting_salary=72000, current_job_level='Mid',
-    )
-    print(f"Soft probabilities → {probs}")
-
-    plot_pca(X, labels, gmm, best_row)
-    plot_bic_aic(results_df)
-    plot_gender_gap(gap_df, all_clusters, gap_scores)

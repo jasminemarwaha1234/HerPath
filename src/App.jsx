@@ -249,12 +249,19 @@ const SECTION_HEAD = {
 
 const CustomTip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
+  const pt = payload[0]?.payload;
   return (
     <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 16px", fontSize: 12, fontFamily: "'DM Mono',monospace", boxShadow: "0 4px 20px #c4536a15" }}>
-      <p style={{ color: C.muted, marginBottom: 6 }}>Age {label}</p>
+      <p style={{ color: C.muted, marginBottom: 6 }}>Year {label}</p>
       {payload.map(p => p.value != null && (
         <p key={p.name} style={{ color: p.color, margin: "2px 0" }}>{p.name}: {fmt(p.value)}</p>
       ))}
+      {(pt?.manRole || pt?.womanRole) && (
+        <div style={{ marginTop: 8, borderTop: `1px solid ${C.border}`, paddingTop: 6 }}>
+          {pt?.manRole   && <p style={{ color: C.man,   margin: "2px 0" }}>Male role → {pt.manRole}</p>}
+          {pt?.womanRole && <p style={{ color: C.woman, margin: "2px 0" }}>Female role → {pt.womanRole}</p>}
+        </div>
+      )}
     </div>
   );
 };
@@ -393,9 +400,11 @@ const LoadingOverlay = () => (
 
   const lineData = mlResult
     ? mlResult.female_timeline.map((f, i) => ({
-        year:  f.year,
-        woman: f.salary,
-        man:   mlResult.male_timeline[i]?.salary ?? f.salary,
+        year:      f.year,
+        woman:     f.salary,
+        man:       mlResult.male_timeline[i]?.salary ?? f.salary,
+        womanRole: f.role ?? null,
+        manRole:   mlResult.male_timeline[i]?.role ?? null,
       }))
     : traj.map(d => ({ year: d.age, woman: d.woman, man: d.man }));
 
@@ -511,8 +520,20 @@ const LoadingOverlay = () => (
                   <XAxis dataKey="year" tick={{ fill: C.muted, fontSize: 11 }} label={{ value: mlResult ? "Year" : "Age", position: "insideBottomRight", offset: -4, fill: C.muted, fontSize: 11 }} />
                   <YAxis tickFormatter={fmt} tick={{ fill: C.muted, fontSize: 11 }} />
                   <Tooltip content={<CustomTip />} />
-                  <Area type="monotone" dataKey="man"   stroke={C.man}   fill="url(#mG)" strokeWidth={2}   name="Men"   dot={false} />
-                  <Area type="monotone" dataKey="woman" stroke={C.woman} fill="url(#wG)" strokeWidth={2.5} name="Women" dot={false} />
+                  <Area type="monotone" dataKey="man" stroke={C.man} fill="url(#mG)" strokeWidth={2} name="Men"
+                    dot={(props) => {
+                      const { cx, cy, payload, index } = props;
+                      if (!payload.manRole) return null;
+                      return <circle key={`m${index}`} cx={cx} cy={cy} r={5} fill={C.man} stroke="#fff" strokeWidth={2} />;
+                    }}
+                  />
+                  <Area type="monotone" dataKey="woman" stroke={C.woman} fill="url(#wG)" strokeWidth={2.5} name="Women"
+                    dot={(props) => {
+                      const { cx, cy, payload, index } = props;
+                      if (!payload.womanRole) return null;
+                      return <circle key={`w${index}`} cx={cx} cy={cy} r={5} fill={C.woman} stroke="#fff" strokeWidth={2} />;
+                    }}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
               <div style={{ display: "flex", gap: 18, marginTop: 14, flexWrap: "wrap" }}>

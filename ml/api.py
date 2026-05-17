@@ -41,11 +41,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from typing import List
-from supabase import create_client
+import httpx
 import os
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / ".env")
-supabase = create_client(os.environ["VITE_SUPABASE_URL"], os.environ["VITE_SUPABASE_ANON_KEY"])
+_SUPABASE_URL = os.environ["VITE_SUPABASE_URL"]
+_SUPABASE_KEY = os.environ["VITE_SUPABASE_ANON_KEY"]
 
 
 import gmm as gmmlib
@@ -148,22 +149,29 @@ def analyze_user(
         user_out_dir, df=_df,
     )
 
-      # 5 — save to Supabase
-    supabase.table("user_inputs").insert({
-        "age":                   age,
-        "gender":                gender,
-        "university_gpa":        university_gpa,
-        "current_role":          current_role,
-        "internships_completed": internships_completed,
-        "starting_salary":       starting_salary,
-        "networking_score":      networking_score,
-        "current_job_level":     current_job_level,
-        "cluster":               cluster,
-        "gap_score":             gap_score,
-        "female_prob":           female_summary.get("promotion_prob"),
-        "male_prob":             male_summary.get("promotion_prob"),
-        "cluster_image_path":    str(cluster_path),
-    }).execute()
+    # 5 — save to Supabase via direct HTTP (stateless, avoids client session issues)
+    try:
+        httpx.post(
+            f"{_SUPABASE_URL}/rest/v1/user_inputs",
+            headers={
+                "apikey": _SUPABASE_KEY,
+                "Authorization": f"Bearer {_SUPABASE_KEY}",
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal",
+            },
+            json={
+                "age":                   age,
+                "gender":                gender,
+                "university_gpa":        university_gpa,
+                "internships_completed": internships_completed,
+                "starting_salary":       starting_salary,
+                "networking_score":      networking_score,
+                "current_job_level":     current_job_level,
+            },
+            timeout=5,
+        )
+    except Exception as e:
+        print(f"[warn] Supabase insert failed (non-fatal): {e}")
 
     return {
         'cluster':            cluster,

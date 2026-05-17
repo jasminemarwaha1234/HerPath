@@ -983,7 +983,7 @@ function FormBody({ p, set, onSubmit, submitLabel }) {
     <>
       {/* Card 1: About you */}
       <div style={CARD}>
-        <h2 style={SECTION_HEAD}>About you 🌷</h2>
+        <h2 style={SECTION_HEAD}>About you </h2>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:18 }}>
           <div>
             <label style={LBL}>First name</label>
@@ -1071,16 +1071,16 @@ function FormBody({ p, set, onSubmit, submitLabel }) {
 
       {/* Card 4: Life circumstances */}
       <div style={CARD}>
-        <h2 style={SECTION_HEAD}>Life circumstances 🌸</h2>
-        <p style={{ fontSize:11, color:C.muted, fontFamily:"'DM Mono',monospace", marginBottom:20 }}>
+        <h2 style={SECTION_HEAD}>Life circumstances </h2>
+        {/* <p style={{ fontSize:11, color:C.muted, fontFamily:"'DM Mono',monospace", marginBottom:20 }}>
           These have measurable, documented impacts on salary trajectory.
-        </p>
+        </p> */}
         <div style={{ display:"flex", gap:12, marginBottom:12 }}>
-          <ToggleBtn icon="💍" label="Are you currently married?"      active={p.married}   onClick={() => set("married",   !p.married)}   />
-          <ToggleBtn icon="🤱" label="Have you taken maternity leave?" active={p.leavePast} onClick={() => set("leavePast", !p.leavePast)} />
+          <ToggleBtn  label="Are you currently married?"      active={p.married}   onClick={() => set("married",   !p.married)}   />
+          <ToggleBtn  label="Have you taken maternity leave?" active={p.leavePast} onClick={() => set("leavePast", !p.leavePast)} />
         </div>
         <div style={{ display:"flex", gap:12 }}>
-          <ToggleBtn icon="📅" label="Planning maternity leave soon?"  active={p.leaveSoon} onClick={() => set("leaveSoon", !p.leaveSoon)} />
+          {/* <ToggleBtn icon="📅" label="Planning maternity leave soon?"  active={p.leaveSoon} onClick={() => set("leaveSoon", !p.leaveSoon)} /> */}
           <div style={{ flex:1 }} />
         </div>
       </div>

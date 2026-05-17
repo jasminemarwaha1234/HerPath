@@ -556,13 +556,13 @@ const LoadingOverlay = () => (
 // ─────────────────────────────────────────────────────────────────────────────
 // LINKEDIN / JOB MATCHES VIEW
 // ─────────────────────────────────────────────────────────────────────────────
-function LinkedInView({ p }) {
+function LinkedInView({ p, jobs }) {
   const [filter, setFilter] = useState("All");
   const filters = ["All", "Remote", "Hybrid", "On-site"];
 
   const filtered = filter === "All"
-    ? HARDCODED_JOBS
-    : HARDCODED_JOBS.filter(j => j.workType === filter);
+    ? jobs
+    : jobs.filter(j => j.workType === filter);
 
   const yourGap = (job) => job.menAvg - job.womenAvg;
 
@@ -574,7 +574,7 @@ function LinkedInView({ p }) {
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 32, fontWeight: 800, margin: "0 0 6px", color: C.text }}>
-          Job Matches For {p.name || "You"} 
+          Job Matches For {p.name || "You"}
         </h2>
         <p style={{ fontSize: 12, color: C.muted, fontFamily: "'DM Mono',monospace", display: "flex", alignItems: "center", gap: 8 }}>
           {/* {p.zipcode ? `Near ${p.zipcode} · ` : ""}Ranked by pay equity · hardcoded placeholder */}
@@ -708,6 +708,7 @@ function LinkedInView({ p }) {
               }}
                 onMouseEnter={e => e.currentTarget.style.background = C.roseDark}
                 onMouseLeave={e => e.currentTarget.style.background = C.rose}
+                onClick={() => job.url && window.open(job.url, "_blank")}
               >Apply →</button>
             </div>
           </div>
@@ -756,6 +757,7 @@ export default function HerPath() {
 
   const [mlResult, setMlResult] = useState(null);
   const [mlLoading, setMlLoading] = useState(false);
+  const [jobs, setJobs] = useState(HARDCODED_JOBS);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -827,6 +829,17 @@ export default function HerPath() {
     } finally {
       setMlLoading(false);
     }
+
+    try {
+      const role    = p.specific_role || p.field;
+      const jobsRes = await fetch(`/api/jobs?role=${encodeURIComponent(role)}&zipcode=${encodeURIComponent(p.zipcode || "")}`);
+      if (jobsRes.ok) {
+        const data = await jobsRes.json();
+        if (data.length > 0) setJobs(data);
+      }
+    } catch (err) {
+      console.error("Jobs API unreachable:", err);
+    }
   };
 
   // ── HERO ──
@@ -884,7 +897,7 @@ export default function HerPath() {
       )}
 
       {resultsTab === "linkedin" && (
-        <LinkedInView p={p} />
+        <LinkedInView p={p} jobs={jobs} />
       )}
 
       {resultsTab === "edit" && (

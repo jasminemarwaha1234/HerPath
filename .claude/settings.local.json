@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"http://localhost:8001/api/jobs?role=Software+Engineer&zipcode=10001\")",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s \"http://localhost:8001/api/jobs?role=Software+Engineer&zipcode=94102\")",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s \"http://localhost:8001/api/jobs?role=Software+Engineer&zipcode=60601\")"
+    ]
+  }
+}

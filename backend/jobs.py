@@ -20,17 +20,19 @@ _CONTRACT_LABELS = {
 }
 
 
-def _posted_ago(iso_str: str) -> str | None:
+def _posted_info(iso_str: str) -> tuple[str | None, int]:
     try:
         dt   = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
         days = (datetime.now(timezone.utc) - dt).days
-        if days == 0: return "today"
-        if days == 1: return "1 day ago"
-        if days < 7:  return f"{days} days ago"
-        weeks = days // 7
-        return f"{weeks} week{'s' if weeks > 1 else ''} ago"
+        if days == 0: label = "today"
+        elif days == 1: label = "1 day ago"
+        elif days < 7:  label = f"{days} days ago"
+        else:
+            weeks = days // 7
+            label = f"{weeks} week{'s' if weeks > 1 else ''} ago"
+        return label, days
     except Exception:
-        return None
+        return None, 9999
 
 
 def _parse_level(title: str) -> str | None:
@@ -98,6 +100,7 @@ async def _fetch_adzuna(role: str, location: str) -> list[dict]:
             title    = j.get("title") or ""
             loc      = (j.get("location") or {}).get("display_name")
 
+            posted_label, days_old = _posted_info(j["created"]) if j.get("created") else (None, 9999)
             out.append({
                 "source":        "adzuna",
                 "title":         title,
@@ -105,7 +108,8 @@ async def _fetch_adzuna(role: str, location: str) -> list[dict]:
                 "location":      loc,
                 "work_type":     _parse_work_type(title, loc),
                 "level":         _parse_level(title),
-                "posted_at":     _posted_ago(j["created"]) if j.get("created") else None,
+                "posted_at":     posted_label,
+                "days_old":      days_old,
                 "contract_type": _CONTRACT_LABELS.get(contract),
                 "category":      (j.get("category") or {}).get("label"),
                 "salary_min":    round(sal_min) if sal_min else None,
@@ -149,6 +153,7 @@ async def _fetch_jsearch(role: str, location: str) -> list[dict]:
             loc       = f"{city_str}, {state_str}".strip(", ") or None
             title     = j.get("job_title") or ""
 
+            posted_label, days_old = _posted_info(j["job_posted_at_datetime_utc"]) if j.get("job_posted_at_datetime_utc") else (None, 9999)
             out.append({
                 "source":        "jsearch",
                 "title":         title,
@@ -156,8 +161,8 @@ async def _fetch_jsearch(role: str, location: str) -> list[dict]:
                 "location":      loc,
                 "work_type":     _parse_work_type(title, loc, j.get("job_is_remote")),
                 "level":         _parse_level(title),
-                "posted_at":     _posted_ago(j["job_posted_at_datetime_utc"])
-                                 if j.get("job_posted_at_datetime_utc") else None,
+                "posted_at":     posted_label,
+                "days_old":      days_old,
                 "contract_type": contract,
                 "category":      None,
                 "salary_min":    round(sal_min) if sal_min else None,

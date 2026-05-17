@@ -155,6 +155,8 @@ async def _fetch_jsearch(role: str, location: str) -> list[dict]:
             title     = j.get("job_title") or ""
 
             posted_label, days_old = _posted_info(j["job_posted_at_datetime_utc"]) if j.get("job_posted_at_datetime_utc") else (None, 9999)
+            lat = j.get("job_latitude")
+            lng = j.get("job_longitude")
             out.append({
                 "source":        "jsearch",
                 "title":         title,
@@ -170,6 +172,8 @@ async def _fetch_jsearch(role: str, location: str) -> list[dict]:
                 "salary_max":    round(sal_max) if sal_max else None,
                 "salary_mid":    sal_mid,
                 "url":           j.get("job_apply_link"),
+                "lat":           float(lat) if lat is not None else None,
+                "lng":           float(lng) if lng is not None else None,
             })
         return out
 

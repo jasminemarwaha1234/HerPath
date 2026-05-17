@@ -10,6 +10,10 @@ Weights:
   distance     0.23  — closer zip code scores higher (neutral 0.5 when zip missing)
   recency      0.05  — more recently posted scores higher (neutral 0.5 when missing)
 
+Cross-domain penalty: if the user's field and the job's field are different domains
+(e.g. engineer vs. marketing director), the raw score is multiplied by 0.12 so
+wrong-field jobs are buried at the bottom of results.
+
 Usage:
     from score_job import score_job
 
@@ -30,11 +34,71 @@ _W_EQUITY   = 0.34
 _W_DISTANCE = 0.23
 _W_RECENCY  = 0.05
 
+# Cross-domain multiplier applied when user field != job field.
+_CROSS_DOMAIN_PENALTY = 0.12
+
+# Ordered list of (domain_name, pattern). First match wins.
+_DOMAINS: list[tuple[str, re.Pattern]] = [
+    ("tech",       re.compile(
+        r'\b(engineer|engineering|developer|software|data|machine learning|ml|ai|'
+        r'devops|sre|platform|backend|frontend|fullstack|full.?stack|infrastructure|'
+        r'security|cloud|architect|programmer|sde|swe|qa|tester|analytics|'
+        r'data scientist|research scientist|computer|cyber|network|systems)\b', re.I)),
+    ("product",    re.compile(
+        r'\b(product manager|product owner|program manager|project manager|'
+        r'scrum master|agile|technical program)\b', re.I)),
+    ("design",     re.compile(
+        r'\b(design|designer|ux|ui|user experience|user interface|visual|'
+        r'graphic|creative director|art director|motion)\b', re.I)),
+    ("marketing",  re.compile(
+        r'\b(marketing|brand|content|seo|sem|growth hacker|campaign|'
+        r'social media|communications|copywriter|media buyer|demand gen)\b', re.I)),
+    ("sales",      re.compile(
+        r'\b(sales|account executive|account manager|business development|'
+        r'revenue|customer success|solutions engineer|pre.?sales|inside sales)\b', re.I)),
+    ("finance",    re.compile(
+        r'\b(finance|financial|accounting|accountant|investment|banking|'
+        r'audit|treasury|controller|cfo|actuar|equity|portfolio|trader|quant)\b', re.I)),
+    ("hr",         re.compile(
+        r'\b(human resources|hr |recruiter|recruiting|talent acquisition|'
+        r'people ops|diversity|dei|workforce|compensation|benefits)\b', re.I)),
+    ("legal",      re.compile(
+        r'\b(legal|lawyer|attorney|counsel|paralegal|compliance|regulatory|'
+        r'policy|contracts|litigation)\b', re.I)),
+    ("ops",        re.compile(
+        r'\b(operations|logistics|supply chain|procurement|facilities|'
+        r'office manager|coordinator|administrator|chief of staff)\b', re.I)),
+    ("healthcare", re.compile(
+        r'\b(nurse|physician|doctor|clinical|medical|healthcare|pharmacy|'
+        r'therapist|dentist|surgeon|radiolog|patholog)\b', re.I)),
+    ("education",  re.compile(
+        r'\b(teacher|professor|instructor|curriculum|academic|tutoring|'
+        r'e.?learning|training|educator|teaching)\b', re.I)),
+]
+
+
+def _get_domain(text: str) -> str | None:
+    for name, pat in _DOMAINS:
+        if pat.search(text):
+            return name
+    return None
+
+
+def _domain_multiplier(user_role: str, job_title: str) -> float:
+    """Return 1.0 if domains match or are unknown; _CROSS_DOMAIN_PENALTY otherwise."""
+    user_domain = _get_domain(user_role)
+    job_domain  = _get_domain(job_title)
+    if user_domain and job_domain and user_domain != job_domain:
+        return _CROSS_DOMAIN_PENALTY
+    return 1.0
+
 
 def _title_score(user_role: str, job_title: str) -> float:
-    """Jaccard similarity on lowercased word tokens."""
+    """Jaccard similarity on lowercased word tokens, excluding common stop words."""
+    _STOP = {"and", "or", "of", "the", "a", "an", "in", "at", "for", "to", "with"}
+
     def tokens(s: str) -> set:
-        return set(re.findall(r"\w+", s.lower()))
+        return set(re.findall(r"\w+", s.lower())) - _STOP
 
     a, b = tokens(user_role), tokens(job_title)
     if not a or not b:
@@ -108,9 +172,14 @@ def score_job(job_info: dict[str, Any], user_info: dict[str, Any]) -> float:
     job_info  — expects: title, womenAvg, menAvg, zipcode, posted
     user_info — expects: current_role, zipcode
     """
-    title    = _title_score(user_info.get("current_role", ""), job_info.get("title", ""))
+    user_role = user_info.get("current_role", "")
+    job_title = job_info.get("title", "")
+
+    title    = _title_score(user_role, job_title)
     equity   = _equity_score(job_info.get("womenAvg"), job_info.get("menAvg"))
     dist     = _distance_score(user_info.get("zipcode"), job_info.get("zipcode"))
     recency  = _recency_score(job_info.get("posted"))
+    penalty  = _domain_multiplier(user_role, job_title)
 
-    return round(_W_TITLE * title + _W_EQUITY * equity + _W_DISTANCE * dist + _W_RECENCY * recency, 4)
+    raw = _W_TITLE * title + _W_EQUITY * equity + _W_DISTANCE * dist + _W_RECENCY * recency
+    return round(penalty * raw, 4)

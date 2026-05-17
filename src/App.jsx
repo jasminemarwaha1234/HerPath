@@ -465,15 +465,19 @@ function ResultsNav({ active, setActive, onHome }) {
             Salary cluster analysis
           </h3>
           <p style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 20 }}>
-            Placeholder · Replace with ML model cluster output
+            Where you fall among similar professionals
           </p>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", background: C.roseSoft, borderRadius: 16, height: 320, border: `1px solid ${C.border}` }}>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>🔵</div>
-              <p style={{ fontFamily: "'DM Mono',monospace", fontSize: 12, color: C.muted }}>Cluster image goes here</p>
-              <p style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: C.border, marginTop: 6 }}>[ drop in your cluster plot image ]</p>
+          {mlLoading ? <LoadingOverlay /> : mlResult?.cluster_image_path ? (
+            <img
+              src={`/ml-api/output/user_results/${mlResult.cluster_image_path.split("/").pop()}`}
+              alt="Salary cluster analysis"
+              style={{ width: "100%", borderRadius: 16, border: `1px solid ${C.border}` }}
+            />
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", background: C.roseSoft, borderRadius: 16, height: 320, border: `1px solid ${C.border}` }}>
+              <p style={{ fontFamily: "'DM Mono',monospace", fontSize: 12, color: C.muted }}>Submit the form to see your cluster</p>
             </div>
-          </div>
+          )}
         </>}
 
         {/* ── LINE CHART ── */}

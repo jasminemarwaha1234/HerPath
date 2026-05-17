@@ -4,7 +4,7 @@ import {
   Tooltip, ResponsiveContainer, BarChart, Bar, Legend,
 } from "recharts";
 import heroBg from "./assets/pink2.webp";
-import supabase from "./lib/supabaseClient"
+import supabase from "./lib/supabaseClient";
 
 const C = {
   bg:       "#fff0f3",
@@ -25,34 +25,41 @@ const C = {
   actual:   "#2d8c72",
 };
 
-const FIELDS = ["Technology","Finance","Healthcare","Education","Marketing","Engineering","Law","Consulting"];
-const EDU    = ["High School","Associate's","Bachelor's","Master's","PhD","JD / MD"];
-const CITIES = [
-  { name:"New York, NY",      avg:95000,  pct:48, opp:"High"   },
-  { name:"San Francisco, CA", avg:115000, pct:44, opp:"High"   },
-  { name:"Austin, TX",        avg:82000,  pct:47, opp:"Medium" },
-  { name:"Chicago, IL",       avg:79000,  pct:50, opp:"Medium" },
-  { name:"Seattle, WA",       avg:108000, pct:43, opp:"High"   },
-  { name:"Boston, MA",        avg:88000,  pct:49, opp:"High"   },
-  { name:"Atlanta, GA",       avg:74000,  pct:51, opp:"Medium" },
-  { name:"Denver, CO",        avg:78000,  pct:46, opp:"Medium" },
-];
+import { ROLES } from "./roles.js";
 
+
+// ── Dropdown options ──────────────────────────────────────────────────────────
+const GENDERS       = ["Female", "Male", "Non-binary / other"];
+const JOB_LEVELS    = [
+  { value: 0, label: "0 — Student / pre-career" },
+  { value: 1, label: "1 — Entry level"          },
+  { value: 2, label: "2 — Mid level"            },
+  { value: 3, label: "3 — Senior level"         },
+  { value: 4, label: "4 — Executive"            },
+];
+const INTERNSHIP_OPTIONS = [
+  { value: 0, label: "0 — None"       },
+  { value: 1, label: "1 internship"   },
+  { value: 2, label: "2 internships"  },
+  { value: 3, label: "3 internships"  },
+  { value: 4, label: "4+ internships" },
+];
+const FIELDS = ["Technology","Finance","Healthcare","Education","Marketing","Engineering","Law","Consulting"];
+
+// ── Trajectory model ──────────────────────────────────────────────────────────
 function genTrajectory(p) {
-  const start = Math.max(22, parseInt(p.age) - parseInt(p.exp));
-  const entry = p.salary * 0.45;
+  const age    = parseInt(p.age) || 28;
+  const start  = Math.max(18, age - 5);
+  const salary = parseInt(p.starting_salary) || 60000;
   return Array.from({ length: 65 - start + 1 }, (_, i) => {
-    const a = start + i;
-    const man = Math.round(entry * Math.pow(1.065, i));
-    let woman = Math.round(entry * Math.pow(1.045, i));
-    if (p.leavePast && a >= parseInt(p.age) - 2 && a <= parseInt(p.age) + 2)
-      woman = Math.round(woman * 0.935);
-    if (p.leaveSoon && a >= parseInt(p.age) && a <= parseInt(p.age) + 3)
-      woman = Math.round(woman * 0.93);
-    if (p.married && a >= parseInt(p.age))
-      woman = Math.round(woman * 0.991);
-    const actual = a <= parseInt(p.age)
-      ? Math.round(p.salary * Math.pow(1.03, a - parseInt(p.age)))
+    const a    = start + i;
+    const man  = Math.round(salary * Math.pow(1.065, i));
+    let woman  = Math.round(salary * Math.pow(1.045, i));
+    if (p.leavePast && a >= age - 2 && a <= age + 2) woman = Math.round(woman * 0.935);
+    if (p.leaveSoon && a >= age     && a <= age + 3) woman = Math.round(woman * 0.93);
+    if (p.married   && a >= age)                     woman = Math.round(woman * 0.991);
+    const actual = a <= age
+      ? Math.round(salary * Math.pow(1.03, a - age))
       : null;
     return { age: a, man, woman, actual };
   });
@@ -60,6 +67,7 @@ function genTrajectory(p) {
 
 const fmt = v => `$${Math.round(v / 1000)}k`;
 
+// ── Small UI atoms ────────────────────────────────────────────────────────────
 const Tag = ({ children, neg }) => (
   <span style={{
     background: neg ? "#fce4ea" : "#d4f0e8",
@@ -67,9 +75,7 @@ const Tag = ({ children, neg }) => (
     borderRadius: 99, padding: "3px 11px",
     fontSize: 10, fontFamily: "'DM Mono',monospace", whiteSpace: "nowrap",
     border: `1px solid ${neg ? "#f0b8c4" : "#a8ddd0"}`,
-  }}>
-    {children}
-  </span>
+  }}>{children}</span>
 );
 
 const StatPill = ({ label, value, sub, accent }) => (
@@ -106,76 +112,156 @@ const ToggleBtn = ({ icon, label, active, onClick }) => (
     textAlign: "left", display: "flex", alignItems: "center", gap: 12,
     fontSize: 13, fontFamily: "'DM Sans',sans-serif", transition: "all 0.15s",
   }}>
-    <span style={{ fontSize: 22 }}>{icon}</span>
-    {label}
+    <span style={{ fontSize: 22 }}>{icon}</span>{label}
   </button>
 );
 
-export default function HerPath() {
-  const [step, setStep] = useState(0);
-  const [tab,  setTab]  = useState("trajectory");
-  const [heroVisible, setHeroVisible] = useState(true);
-  const formRef = useRef(null);
+// ── Reusable slider field ──────────────────────────────────────────────────────
+const SliderField = ({ label, hint, min, max, value, onChange, displayVal }) => (
+  <div>
+    <label style={LBL}>
+      {label}
+      <span style={{ float: "right", color: C.rose, fontWeight: 700, fontSize: 13 }}>
+        {displayVal ?? value}
+      </span>
+    </label>
+    <input
+      type="range" min={min} max={max} value={value}
+      onChange={e => onChange(Number(e.target.value))}
+      style={{ width: "100%", accentColor: C.rose, cursor: "pointer" }}
+    />
+    {hint && <div style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginTop: 3 }}>{hint}</div>}
+  </div>
+);
 
+// ── Shared styles ──────────────────────────────────────────────────────────────
+const INP = {
+  background: "#fff", border: `1.5px solid ${C.border}`, borderRadius: 10,
+  color: C.text, padding: "11px 14px", fontSize: 14,
+  fontFamily: "'DM Sans',sans-serif", width: "100%", outline: "none",
+  boxSizing: "border-box",
+};
+const SEL = {
+  ...INP,
+  appearance: "none", WebkitAppearance: "none", cursor: "pointer",
+  backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239a6070' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+  backgroundRepeat: "no-repeat", backgroundPosition: "right 14px center", paddingRight: 36,
+};
+const LBL = {
+  fontSize: 10, color: C.muted, textTransform: "uppercase",
+  letterSpacing: "0.13em", fontFamily: "'DM Mono',monospace",
+  marginBottom: 6, display: "block",
+};
+const CARD = {
+  background: "#fff", border: `1.5px solid ${C.border}`,
+  borderRadius: 24, padding: 32, marginBottom: 18,
+  boxShadow: "0 2px 24px #c4536a0a",
+};
+const SECTION_HEAD = {
+  fontFamily: "'Cormorant Garamond',serif",
+  fontSize: 22, fontWeight: 700, marginBottom: 20, color: C.text,
+};
+
+// ═════════════════════════════════════════════════════════════════════════════
+export default function HerPath() {
+  const [step, setStep]         = useState(0);
+  const [tab,  setTab]          = useState("trajectory");
+  // const [heroVisible, setHV]    = useState(true);
+  const [heroVisible, setHV] = useState(sessionStorage.getItem("started") !== "true");
+  const formRef                 = useRef(null);
+
+  // ── Form state matches Kaggle schema exactly ──────────────────────────────
   const [p, setP] = useState({
-    name: "", age: 32, salary: 75000, field: "Technology",
-    edu: "Bachelor's", exp: 8,
-    married: false, leavePast: false, leaveSoon: false,
-    location: "New York, NY", role: "Senior Engineer",
+    // personal / display
+    name:              "",
+    // Kaggle fields
+    age:               22,
+    gender:            "Female",
+    gpa:               3.5,           // University_GPA  (0.0–4.0)
+    field:             "Technology",  // Field_of_Study / industry
+    specific_role:     "",            // Specific_Role
+    internships:       0,             // Internships_Completed (0–4)
+    starting_salary:   60000,         // Starting_Salary
+    networking_score:  5,             // Networking_Score (1–10)
+    job_level:         1,             // Current_Job_Level (0–4)
+    // life events (affect trajectory model)
+    married:           false,
+    leavePast:         false,
+    leaveSoon:         false,
   });
 
+  const set = (key, val) => setP(prev => ({ ...prev, [key]: val }));
+
+  // ── Font load ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,700;0,800;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap";
-    document.head.appendChild(link);
+    window.scrollTo(0, 0); 
+    window.addEventListener("beforeunload", () => sessionStorage.removeItem("started"));
+    const l = document.createElement("link");
+    l.rel  = "stylesheet";
+    l.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,700;0,800;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap";
+    document.head.appendChild(l);
   }, []);
 
-  useEffect(() => {
-    document.body.style.overflow = heroVisible ? "hidden" : "auto";
-    document.documentElement.style.overflow = heroVisible ? "hidden" : "auto";
-  }, [heroVisible]);
+  // useEffect(() => {
+  //   document.body.style.overflow            = heroVisible ? "hidden" : "auto";
+  //   document.documentElement.style.overflow = heroVisible ? "hidden" : "auto";
+  // }, [heroVisible]);
 
-  const scrollToForm = () => {
-    formRef.current?.scrollIntoView({ behavior: "smooth" });
-    setTimeout(() => setHeroVisible(false), 800);
-  };
+//   useEffect(() => {
+//   setHV(true);
+//   setStep(0);
+//   window.scrollTo(0, 0);
+// }, []);
 
+  // const scrollToForm = () => {
+  //   formRef.current?.scrollIntoView({ behavior: "smooth" });
+  //   setTimeout(() => setHV(false), 800);
+  // };
+//   const scrollToForm = () => {
+//   setHV(false);
+//   //setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+  
+// };
+const scrollToForm = () => {
+  sessionStorage.setItem("started", "true");
+  setHV(false);
+};
+
+  // ── Derived stats ──────────────────────────────────────────────────────────
   const traj     = genTrajectory(p);
   const curAge   = parseInt(p.age);
-  const manNow   = traj.find(d => d.age === curAge)?.man || p.salary;
-  const gapPct   = Math.round((1 - p.salary / manNow) * 100);
+  const manNow   = traj.find(d => d.age === curAge)?.man || p.starting_salary;
+  const gapPct   = Math.round((1 - p.starting_salary / manNow) * 100);
   const lifetime = Math.round(traj.reduce((s, d) => s + Math.max(0, (d.man || 0) - (d.woman || 0)), 0));
-  
+
+  const JOB_LEVEL_LABEL = JOB_LEVELS.find(j => j.value === p.job_level)?.label ?? "—";
+
+  // ── Supabase submit ────────────────────────────────────────────────────────
   const handleAnalyze = async () => {
     const { error } = await supabase
       .from("user_inputs")
       .insert([{
-        Age:                  parseInt(p.age),
-        Gender:               "Female",        // your app is women-focused
-        University_GPA:       null,            // not in your form, leave null
-        Current_Role:         p.role,
-        Internships_Completed: null,
-        Starting_Salary:      parseInt(p.salary),
-        Networking_Score:     null,
-        Years_to_Promotion:   null,
-        Current_Job_Level:    null,
-      }])
-    if (error) console.error("Supabase error:", error)
-      setStep(1)
-  }
+        Age:                   parseInt(p.age),
+        Gender:                p.gender,
+        University_GPA:        parseFloat(p.gpa),
+        Current_Role:          p.specific_role || null,
+        Internships_Completed: parseInt(p.internships),
+        Starting_Salary:       parseInt(p.starting_salary),
+        Networking_Score:      parseInt(p.networking_score),
+        Current_Job_Level:     parseInt(p.job_level),
+      }]);
+    if (error) console.error("Supabase error:", error);
+    setStep(1);
+  };
 
-  const inp = {
-    background: "#fff", border: `1.5px solid ${C.border}`, borderRadius: 10,
-    color: C.text, padding: "11px 14px", fontSize: 14,
-    fontFamily: "'DM Sans',sans-serif", width: "100%", outline: "none",
-    boxSizing: "border-box",
-  };
-  const lbl = {
-    fontSize: 10, color: C.muted, textTransform: "uppercase",
-    letterSpacing: "0.13em", fontFamily: "'DM Mono',monospace",
-    marginBottom: 6, display: "block",
-  };
+  // ── Life events timeline ───────────────────────────────────────────────────
+  const lifeEvents = [
+    p.married   && { age: curAge - 2, icon: "💍", label: "Marriage",                impact: "−2–3% trajectory",  neg: true  },
+    p.leavePast && { age: curAge - 1, icon: "🤱", label: "Maternity leave (taken)", impact: "−7% on return",     neg: true  },
+    p.leavePast && { age: curAge,     icon: "📋", label: "Post-leave reassignment", impact: "+12% admin load",   neg: true  },
+    p.leaveSoon && { age: curAge + 1, icon: "📅", label: "Planned maternity leave", impact: "−7–12% projected",  neg: true  },
+                   { age: curAge + 3, icon: "📈", label: "Promotion window",        impact: "Critical moment",   neg: false },
+  ].filter(Boolean);
 
   const TABS = [
     { id: "trajectory", icon: "📈", label: "Trajectory"  },
@@ -183,24 +269,18 @@ export default function HerPath() {
     { id: "tasks",      icon: "📋", label: "Task load"   },
   ];
 
-  const lifeEvents = [
-    p.married   && { age: curAge - 2, icon: "💍", label: "Marriage",                impact: "−2–3% trajectory", neg: true  },
-    p.leavePast && { age: curAge - 1, icon: "🤱", label: "Maternity leave (taken)", impact: "−7% on return",    neg: true  },
-    p.leavePast && { age: curAge,     icon: "📋", label: "Post-leave reassignment", impact: "+12% admin load",  neg: true  },
-    p.leaveSoon && { age: curAge + 1, icon: "📅", label: "Planned maternity leave", impact: "−7–12% projected", neg: true  },
-                   { age: curAge + 3, icon: "📈", label: "Promotion window",        impact: "Critical moment",  neg: false },
-  ].filter(Boolean);
-
+  // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div style={{ minHeight: "100vh", width: "100%", background: C.bg, color: C.text, fontFamily: "'DM Sans',sans-serif" }}>
-
       <style>{`
         @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(8px)} }
-        select option { background: #fff; color: #3d1a24; }
-        input:focus, select:focus { border-color: #c4536a !important; }
+        select option { background:#fff; color:#3d1a24; }
+        input:focus, select:focus { border-color:#c4536a !important; }
+        input[type=range]::-webkit-slider-thumb { accent-color: #c4536a; }
+        html { scroll-behavior: auto; }
       `}</style>
 
-      {/* ══ HERO ══ */}
+      {/* ── HERO ── */}
       {heroVisible && (
         <div style={{
           minHeight: "100vh",
@@ -237,78 +317,194 @@ export default function HerPath() {
         </div>
       )}
 
-      {/* ══ FORM + RESULTS ══ */}
-      <div ref={formRef} style={{ background: C.bg, padding: "64px 20px 80px", minHeight: "100vh" }}>
+      {/* ── FORM + RESULTS ── */}
+      {!heroVisible && <div ref={formRef} style={{ background: C.bg, padding: "64px 20px 80px", minHeight: "100vh" }}>
         <div style={{ maxWidth: 860, margin: "0 auto" }}>
 
+          {/* ══════════════ STEP 0 — FORM ══════════════ */}
           {step === 0 && (
             <>
-              {/* Profile card */}
-              <div style={{ background: C.card, border: `1.5px solid ${C.border}`, borderRadius: 24, padding: 32, marginBottom: 18, boxShadow: "0 2px 24px #c4536a0a" }}>
-                <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 24, fontWeight: 700, marginBottom: 24, color: C.text }}>
-                  Tell us about yourself 🌷
-                </h2>
+
+              {/* ── Card 1: About you ── */}
+              <div style={CARD}>
+                <h2 style={SECTION_HEAD}>About you 🌷</h2>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
-                  {[
-                    { label: "First name",         key: "name",   type: "text",   ph: "e.g. Sarah" },
-                    { label: "Age",                 key: "age",    type: "number"  },
-                    { label: "Current salary ($)",  key: "salary", type: "number"  },
-                    { label: "Years of experience", key: "exp",    type: "number"  },
-                  ].map(f => (
-                    <div key={f.key}>
-                      <label style={lbl}>{f.label}</label>
-                      <input style={inp} type={f.type} placeholder={f.ph || ""} value={p[f.key]}
-                        onChange={e => setP({ ...p, [f.key]: f.type === "number" ? (parseInt(e.target.value) || 0) : e.target.value })} />
-                    </div>
-                  ))}
-                  {[
-                    { label: "Field / industry", key: "field",    opts: FIELDS },
-                    { label: "Education",         key: "edu",      opts: EDU    },
-                    { label: "Location",          key: "location", opts: CITIES.map(c => c.name) },
-                  ].map(f => (
-                    <div key={f.key}>
-                      <label style={lbl}>{f.label}</label>
-                      <select style={inp} value={p[f.key]} onChange={e => setP({ ...p, [f.key]: e.target.value })}>
-                        {f.opts.map(o => <option key={o}>{o}</option>)}
-                      </select>
-                    </div>
-                  ))}
+
+                  {/* Name */}
                   <div>
-                    <label style={lbl}>Current / desired role</label>
-                    <input style={inp} placeholder="e.g. Senior Engineer" value={p.role}
-                      onChange={e => setP({ ...p, role: e.target.value })} />
+                    <label style={LBL}>First name</label>
+                    <input style={INP} type="text" placeholder="e.g. Sarah"
+                      value={p.name} onChange={e => set("name", e.target.value)} />
                   </div>
+
+                  {/* Age */}
+                  <div>
+                    <label style={LBL}>Age</label>
+                    <input style={INP} type="number" min="18" max="65" placeholder="e.g. 24"
+                      value={p.age} onChange={e => set("age", e.target.value)} />
+                  </div>
+
+                  {/* Gender */}
+                  <div>
+                    <label style={LBL}>Gender</label>
+                    <select style={SEL} value={p.gender} onChange={e => set("gender", e.target.value)}>
+                      {GENDERS.map(g => <option key={g}>{g}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Field of study / industry */}
+                  <div>
+                    <label style={LBL}>Field / industry</label>
+                    <select style={SEL} value={p.field} onChange={e => set("field", e.target.value)}>
+                      {FIELDS.map(f => <option key={f}>{f}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Specific role
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={LBL}>Specific role / job title</label>
+                    <input style={INP} type="text" placeholder="e.g. Software Engineer, Product Manager…"
+                      value={p.specific_role} onChange={e => set("specific_role", e.target.value)} />
+                  </div> */}
+                  {/* Specific role */}
+<div style={{ gridColumn: "1 / -1", position: "relative" }}>
+  <label style={LBL}>Specific role / job title</label>
+  <input style={INP} type="text" placeholder="Type to search e.g. Software…"
+    value={p.specific_role}
+    onChange={e => set("specific_role", e.target.value)}
+    onBlur={() => setTimeout(() => set("_roleOpen", false), 150)}
+    onFocus={() => set("_roleOpen", true)}
+  />
+  {p._roleOpen && p.specific_role.length > 0 && (
+    <div style={{
+      position: "absolute", top: "100%", left: 0, right: 0, zIndex: 99,
+      background: "#fff", border: `1.5px solid ${C.border}`,
+      borderRadius: 12, marginTop: 4,
+      boxShadow: "0 8px 24px #c4536a15", maxHeight: 200, overflowY: "auto",
+    }}>
+      {ROLES.filter(r => r.toLowerCase().includes(p.specific_role.toLowerCase()))
+        .map(r => (
+          <div key={r}
+            onMouseDown={() => set("specific_role", r)}
+            style={{
+              padding: "10px 14px", fontSize: 13, cursor: "pointer",
+              color: C.text, fontFamily: "'DM Sans',sans-serif",
+              borderBottom: `1px solid ${C.border}`,
+              transition: "background 0.1s",
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = C.roseSoft}
+            onMouseLeave={e => e.currentTarget.style.background = "#fff"}
+          >
+            {r}
+          </div>
+        ))}
+    </div>
+  )}
+</div>
+
                 </div>
               </div>
 
-              {/* Life circumstances */}
-              <div style={{ background: C.card, border: `1.5px solid ${C.border}`, borderRadius: 24, padding: 32, marginBottom: 22, boxShadow: "0 2px 24px #c4536a0a" }}>
-                <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 700, marginBottom: 6, color: C.text }}>
-                  Life circumstances 🌸
-                </h2>
+              {/* ── Card 2: Academic & career baseline ── */}
+              <div style={CARD}>
+                <h2 style={SECTION_HEAD}>Academic & career baseline 🎓</h2>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+
+                  {/* GPA slider */}
+                  <SliderField
+                    label="University GPA"
+                    hint="0.0 – 4.0 scale"
+                    min={0} max={40} value={Math.round(p.gpa * 10)}
+                    onChange={v => set("gpa", v / 10)}
+                    displayVal={p.gpa.toFixed(1)}
+                  />
+
+                  {/* Internships */}
+                  <div>
+                    <label style={LBL}>Internships completed</label>
+                    <select style={SEL} value={p.internships}
+                      onChange={e => set("internships", parseInt(e.target.value))}>
+                      {INTERNSHIP_OPTIONS.map(o => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Starting salary */}
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={LBL}>Starting salary ($/yr)</label>
+                    <input style={INP} type="number" placeholder="e.g. 75000"
+                      value={p.starting_salary || ""}
+                      onChange={e => set("starting_salary", parseInt(e.target.value) || 0)} />
+                  </div>
+
+                </div>
+              </div>
+
+              {/* ── Card 3: Career position ── */}
+              <div style={CARD}>
+                <h2 style={SECTION_HEAD}>Career position 📊</h2>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+
+                  {/* Current job level */}
+                  <div>
+                    <label style={LBL}>Current job level</label>
+                    <select style={SEL} value={p.job_level}
+                      onChange={e => set("job_level", parseInt(e.target.value))}>
+                      {JOB_LEVELS.map(o => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                    <div style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginTop: 4 }}>
+                      Career stages: Entry → Mid → Senior → Executive
+                    </div>
+                  </div>
+
+                  {/* Networking score */}
+                  <SliderField
+                    label="Networking score"
+                    hint="1 = low activity · 10 = highly connected (LinkedIn, events, etc.)"
+                    min={1} max={10} value={p.networking_score}
+                    onChange={v => set("networking_score", v)}
+                  />
+
+                </div>
+              </div>
+
+              {/* ── Card 4: Life circumstances ── */}
+              <div style={CARD}>
+                <h2 style={SECTION_HEAD}>Life circumstances 🌸</h2>
                 <p style={{ fontSize: 11, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 20 }}>
                   These have measurable, documented impacts on salary trajectory.
                 </p>
                 <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
-                  <ToggleBtn icon="💍" label="Are you currently married?"      active={p.married}   onClick={() => setP({ ...p, married: !p.married })} />
-                  <ToggleBtn icon="🤱" label="Have you taken maternity leave?" active={p.leavePast} onClick={() => setP({ ...p, leavePast: !p.leavePast })} />
+                  <ToggleBtn icon="💍" label="Are you currently married?"      active={p.married}   onClick={() => set("married",   !p.married)}   />
+                  <ToggleBtn icon="🤱" label="Have you taken maternity leave?" active={p.leavePast} onClick={() => set("leavePast", !p.leavePast)} />
                 </div>
                 <div style={{ display: "flex", gap: 12 }}>
-                  <ToggleBtn icon="📅" label="Planning maternity leave soon?"  active={p.leaveSoon} onClick={() => setP({ ...p, leaveSoon: !p.leaveSoon })} />
+                  <ToggleBtn icon="📅" label="Planning maternity leave soon?"  active={p.leaveSoon} onClick={() => set("leaveSoon", !p.leaveSoon)} />
                   <div style={{ flex: 1 }} />
                 </div>
               </div>
 
+              {/* ── Submit ── */}
               <button onClick={handleAnalyze} style={{
                 width: "100%", background: C.rose, color: "#fff", border: "none",
                 borderRadius: 16, padding: "18px 32px", fontSize: 15, fontWeight: 600,
                 cursor: "pointer", fontFamily: "'DM Sans',sans-serif", letterSpacing: "0.02em",
+                boxShadow: "0 4px 20px #c4536a33", transition: "background 0.2s",
               }}>
                 Analyze my trajectory →
               </button>
+
+              {/* schema hint for devs */}
+              <p style={{ marginTop: 14, fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", textAlign: "center" }}>
+                Fields: Age · Gender · University_GPA · Specific_Role · Internships_Completed · Starting_Salary · Networking_Score · Current_Job_Level
+              </p>
             </>
           )}
 
+          {/* ══════════════ STEP 1 — RESULTS ══════════════ */}
           {step === 1 && (
             <>
               <button onClick={() => setStep(0)} style={{
@@ -320,14 +516,32 @@ export default function HerPath() {
               </button>
 
               <p style={{ fontSize: 11, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 16 }}>
-                {p.name ? `${p.name}'s` : "Your"} analysis · {p.field} · {p.location}
+                {p.name ? `${p.name}'s` : "Your"} analysis · {p.field} · {p.specific_role || "your role"} · {JOB_LEVEL_LABEL}
               </p>
 
               {/* Stats */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 24 }}>
-                <StatPill label="Your salary"            value={fmt(p.salary)} sub={p.role} />
-                <StatPill label="Gap vs. male peer"      value={`−${gapPct}%`} sub={`${fmt(manNow)} avg for men`} accent />
-                <StatPill label="Projected lifetime loss" value={fmt(lifetime)} sub="vs. male trajectory" accent />
+                <StatPill label="Starting salary"        value={fmt(p.starting_salary)} sub={p.specific_role || "your role"} />
+                <StatPill label="Gap vs. male peer"      value={`−${gapPct}%`}          sub={`${fmt(manNow)} avg for men`}   accent />
+                <StatPill label="Projected lifetime loss" value={fmt(lifetime)}          sub="vs. male trajectory"            accent />
+              </div>
+
+              {/* Profile summary chips */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
+                {[
+                  `GPA ${p.gpa.toFixed(1)}`,
+                  `${p.internships} internship${p.internships !== 1 ? "s" : ""}`,
+                  `Networking ${p.networking_score}/10`,
+                  JOB_LEVEL_LABEL.split("—")[1]?.trim() || "Entry level",
+                ].map(chip => (
+                  <span key={chip} style={{
+                    background: "#fff", border: `1px solid ${C.border}`,
+                    borderRadius: 99, padding: "4px 12px",
+                    fontSize: 11, color: C.muted, fontFamily: "'DM Mono',monospace",
+                  }}>
+                    {chip}
+                  </span>
+                ))}
               </div>
 
               {/* Tabs */}
@@ -347,15 +561,16 @@ export default function HerPath() {
               </div>
 
               {/* Tab content */}
-              <div style={{ background: C.card, border: `1.5px solid ${C.border}`, borderRadius: 24, padding: 28, boxShadow: "0 2px 24px #c4536a0a" }}>
+              <div style={{ background: "#fff", border: `1.5px solid ${C.border}`, borderRadius: 24, padding: 28, boxShadow: "0 2px 24px #c4536a0a" }}>
 
+                {/* TRAJECTORY TAB */}
                 {tab === "trajectory" && (
                   <>
                     <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 700, marginBottom: 4, color: C.text }}>
                       Salary trajectory to retirement
                     </h3>
                     <p style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 20 }}>
-                      Modeled using BLS growth rates + gender gap research · Hardcoded data
+                      Modeled using BLS growth rates + gender gap research · Starting from ${p.starting_salary.toLocaleString()}
                     </p>
                     <ResponsiveContainer width="100%" height={280}>
                       <AreaChart data={traj} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -363,7 +578,7 @@ export default function HerPath() {
                           {[["wG", C.woman], ["mG", C.man], ["aG", C.actual]].map(([id, col]) => (
                             <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1">
                               <stop offset="5%"  stopColor={col} stopOpacity={0.2} />
-                              <stop offset="95%" stopColor={col} stopOpacity={0} />
+                              <stop offset="95%" stopColor={col} stopOpacity={0}   />
                             </linearGradient>
                           ))}
                         </defs>
@@ -386,6 +601,7 @@ export default function HerPath() {
                   </>
                 )}
 
+                {/* LIFE EVENTS TAB */}
                 {tab === "life" && (
                   <>
                     <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 700, marginBottom: 4, color: C.text }}>
@@ -429,13 +645,14 @@ export default function HerPath() {
                   </>
                 )}
 
+                {/* TASKS TAB */}
                 {tab === "tasks" && (
                   <>
                     <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 700, marginBottom: 4, color: C.text }}>
                       Task distribution
                     </h3>
                     <p style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 22 }}>
-                      % of work time on non-promotable tasks — same role, same level · Hardcoded data
+                      % of work time on non-promotable tasks — same role, same level
                     </p>
                     <ResponsiveContainer width="100%" height={210}>
                       <BarChart layout="vertical" margin={{ left: 10, right: 10 }}
@@ -491,15 +708,18 @@ export default function HerPath() {
                     <strong style={{ color: C.rose }}>−{gapPct}%</strong> vs. a male peer with equal experience.
                     {p.leavePast ? " Past maternity leave is modeled to have reduced your trajectory by ~7%." : ""}
                     {p.leaveSoon ? " Upcoming leave may widen this gap by 7–12% over the next few years." : ""}
-                    {" "}Negotiating at your next review could recover{" "}
+                    {" "}A networking score of <strong style={{ color: C.text }}>{p.networking_score}/10</strong>{" "}
+                    {p.networking_score >= 7 ? "puts you in a strong position to leverage connections." : "— increasing this to 8+ is one of the highest-ROI career moves you can make."}{" "}
+                    Negotiating at your next review could recover{" "}
                     <strong style={{ color: C.mint }}>{fmt(manNow * 0.05)}–{fmt(manNow * 0.12)}</strong>/yr.
                   </p>
                 </div>
               </div>
             </>
           )}
+
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

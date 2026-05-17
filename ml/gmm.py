@@ -176,6 +176,84 @@ def promotion_chain(role, gmm, scaler, age, university_gpa, internships_complete
     return chain
 
 
+def career_timeline(role, gmm, scaler, age, university_gpa, internships_completed,
+                    networking_score, starting_salary, current_job_level, years=10):
+    """
+    Project a year-by-year career trajectory for one person over `years` years.
+
+    Promotion probability is converted to expected years-in-role via 1/avg_prob
+    (geometric distribution). Salary grows 4%/yr within a role; +15% on promotion.
+    Gap score splits female vs male annual raise so the salary gap widens over time.
+
+    Returns list of dicts, one per year:
+      year, age, role, female_salary, male_salary,
+      female_promotion_prob, male_promotion_prob, gap_score
+    """
+    ANNUAL_RAISE = 0.04
+    PROMO_BUMP   = 0.15
+
+    chain = promotion_chain(role, gmm, scaler, age, university_gpa,
+                            internships_completed, networking_score,
+                            starting_salary, current_job_level)
+
+    # Annotate each chain step with how many years the person stays in that role.
+    steps = []
+    for step in chain:
+        avg_prob = (step['female_prob'] + step['male_prob']) / 2
+        yrs = max(1, round(1 / avg_prob)) if avg_prob > 0 else years
+        steps.append({**step, 'years_in_role': yrs})
+
+    start_probs = predict_single(gmm, scaler, age, university_gpa, internships_completed,
+                                 networking_score, starting_salary, current_job_level, role)
+    gap_score    = start_probs['female']['gap_score']
+    salary_f     = float(starting_salary)
+    salary_m     = float(starting_salary)
+    current_role = role
+    step_idx     = 0
+    years_in_current = 0
+    timeline     = []
+
+    for year in range(1, years + 1):
+        if step_idx < len(steps):
+            f_prob = steps[step_idx]['female_prob']
+            m_prob = steps[step_idx]['male_prob']
+        elif steps:
+            f_prob = steps[-1]['female_prob']
+            m_prob = steps[-1]['male_prob']
+        else:
+            f_prob = m_prob = 0.5
+
+        # Gap widens raise rates: females get slightly less, males slightly more.
+        salary_f *= (1 + ANNUAL_RAISE * (1 - 0.5 * gap_score))
+        salary_m *= (1 + ANNUAL_RAISE * (1 + 0.5 * gap_score))
+        years_in_current += 1
+
+        timeline.append({
+            'year':                  year,
+            'age':                   age + year - 1,
+            'role':                  current_role,
+            'female_salary':         round(salary_f, 2),
+            'male_salary':           round(salary_m, 2),
+            'female_promotion_prob': round(f_prob, 4),
+            'male_promotion_prob':   round(m_prob, 4),
+            'gap_score':             round(gap_score, 4),
+        })
+
+        # Advance role when the expected tenure expires.
+        if step_idx < len(steps) and years_in_current >= steps[step_idx]['years_in_role']:
+            salary_f     *= (1 + PROMO_BUMP)
+            salary_m     *= (1 + PROMO_BUMP)
+            current_role  = steps[step_idx]['to']
+            step_idx     += 1
+            years_in_current = 0
+            new_probs    = predict_single(gmm, scaler, age + year - 1, university_gpa,
+                                          internships_completed, networking_score,
+                                          round(salary_f), current_job_level, current_role)
+            gap_score    = new_probs['female']['gap_score']
+
+    return timeline
+
+
 def cluster_probabilities(gmm, scaler, age, university_gpa, internships_completed,
                           networking_score, starting_salary, current_job_level):
     """Return soft assignment probabilities across all clusters for one individual."""
@@ -184,6 +262,8 @@ def cluster_probabilities(gmm, scaler, age, university_gpa, internships_complete
                            networking_score, starting_salary, level_enc]], dtype=float)
     probs = gmm.predict_proba(scaler.transform(row))[0]
     return {f"Cluster {i}": round(float(p), 4) for i, p in enumerate(probs)}
+
+
 
 # ── Analysis ──────────────────────────────────────────────────────────────────
 
@@ -314,6 +394,7 @@ if __name__ == '__main__':
         'role': 'Software Engineer',
     }
 
-    #promo_probs = predict_single(gmm, scaler, **sample)
-    promo_probs = promotion_chain(sample['role'], gmm, scaler, **{k: v for k, v in sample.items() if k != 'role'})
-    print(f"Promotion probabilities → {promo_probs}")
+    timeline = career_timeline(sample['role'], gmm, scaler,
+                               **{k: v for k, v in sample.items() if k != 'role'})
+    for pt in timeline:
+        print(pt)

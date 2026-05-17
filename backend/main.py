@@ -1,9 +1,13 @@
-from fastapi import FastAPI, Query
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from dotenv import load_dotenv
 from pathlib import Path
 import math
 import re
+import os
+import httpx
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
@@ -11,6 +15,16 @@ from .jobs import get_listings
 from .gap import compute_gap
 from .location import resolve_location
 from . import cache
+
+PROMPT_PATH = Path(__file__).parent.parent / "agent_prompt.md"
+_prompt_template: str = ""
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global _prompt_template
+    _prompt_template = PROMPT_PATH.read_text(encoding="utf-8")
+    yield
 
 
 def _haversine_mi(lat1, lon1, lat2, lon2) -> float:
@@ -21,7 +35,7 @@ def _haversine_mi(lat1, lon1, lat2, lon2) -> float:
     a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2) ** 2
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
-app = FastAPI(title="HerPath Jobs API")
+app = FastAPI(title="HerPath Jobs API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -112,3 +126,47 @@ async def jobs(
 
     cache.set(cache_key, result)
     return result
+
+
+class ChatRequest(BaseModel):
+    messages: list
+    user_profile: dict = {}
+
+
+@app.post("/api/chat")
+async def chat(req: ChatRequest):
+    profile = req.user_profile
+    defaults = {
+        "name": "Unknown", "age": "N/A", "gender": "N/A",
+        "field": "N/A", "role": "N/A", "job_level": "N/A",
+        "gpa": "N/A", "internships": "N/A", "networking_score": "N/A",
+        "starting_salary": "N/A", "pay_gap": "N/A",
+        "promotion_probability": "N/A", "marital_status": "N/A",
+        "maternity_leave_taken": "N/A", "maternity_leave_planned": "N/A",
+    }
+    filled = {k: profile.get(k, v) for k, v in defaults.items()}
+    system_prompt = _prompt_template.format(**filled)
+
+    payload = {
+        "model": "grok-3-mini",
+        "messages": [{"role": "system", "content": system_prompt}, *req.messages],
+    }
+
+    api_key = os.environ.get("GROQ_API_KEY", "")
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                "https://api.x.ai/v1/chat/completions",
+                json=payload,
+                headers=headers,
+            )
+            resp.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=502, detail=f"Upstream connection error: {e}")
+
+    data = resp.json()
+    return {"reply": data["choices"][0]["message"]["content"]}

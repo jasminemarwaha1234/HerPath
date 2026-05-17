@@ -6,6 +6,7 @@ import {
 // import heroBg from "./assets/pink2.webp";
 import supabase from "./lib/supabaseClient";
 import { ROLES } from "./roles.js";
+import WhyTheGapTab from "./WhyTheGapTab.jsx";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DESIGN TOKENS
@@ -299,9 +300,10 @@ const SliderField = ({ label, hint, min, max, value, onChange, displayVal }) => 
 // ─────────────────────────────────────────────────────────────────────────────
 function ResultsNav({ active, setActive, onHome }) {
   const tabs = [
-    { id: "home",    label: "Home"      },
-    { id: "stats",  label: "My Stats"  },
+    { id: "home",    label: "Home"         },
+    { id: "stats",   label: "My Stats"     },
     { id: "linkedin", label: "Job Matches" },
+    { id: "whygap",  label: "Why the Gap"  },
   ];
   return (
     <div style={{
@@ -932,6 +934,10 @@ export default function HerPath() {
 
       {resultsTab === "linkedin" && (
         <LinkedInView p={p} jobs={jobs} />
+      )}
+
+      {resultsTab === "whygap" && (
+        <WhyTheGapTab p={p} mlResult={mlResult} />
       )}
 
       {resultsTab === "edit" && (

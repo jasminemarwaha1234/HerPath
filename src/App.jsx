@@ -365,140 +365,158 @@ function ResultsNav({ active, setActive, onHome }) {
 //   const curAge = parseInt(p.age);
 //   const JOB_LEVEL_LABEL = JOB_LEVELS.find(j => j.value === p.job_level)?.label ?? "—";
 
-  function StatsView({ traj }) {
+  function StatsView({ traj, mlResult, mlLoading }) {
   const [tab, setTab] = useState("bar");
 
   const TABS = [
-  { id: "bar",     label: "Bar chart"  },
-  { id: "cluster",  label: "Cluster"    },
-  { id: "line",    label: "Line chart" },
-];
+    { id: "bar",     label: "Bar chart"  },
+    { id: "cluster", label: "Cluster"    },
+    { id: "line",    label: "Line chart" },
+  ];
+
+  const barSalaryData = [{
+    label: "Avg Base Salary",
+    women: mlResult?.female?.base_salary ?? null,
+    men:   mlResult?.male?.base_salary   ?? null,
+  }];
+  const barPromoData = [{
+    label: "Promotion Probability",
+    women: mlResult ? Math.round((mlResult.female?.prob ?? 0) * 100) : null,
+    men:   mlResult ? Math.round((mlResult.male?.prob   ?? 0) * 100) : null,
+  }];
+
+  const lineData = mlResult
+    ? mlResult.female_timeline.map((f, i) => ({
+        year:  f.year,
+        woman: f.salary,
+        man:   mlResult.male_timeline[i]?.salary ?? f.salary,
+      }))
+    : traj.map(d => ({ year: d.age, woman: d.woman, man: d.man }));
+
+  const LoadingOverlay = () => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 300, color: C.muted, fontFamily: "'DM Mono',monospace", fontSize: 12 }}>
+      Running model…
+    </div>
+  );
 
   return (
     <div style={{ maxWidth: 860, margin: "0 auto", padding: "36px 24px 80px" }}>
 
-
-      
-
       {/* Tab bar */}
-<div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-  {TABS.map(t => (
-    <button key={t.id} onClick={() => setTab(t.id)} style={{
-      background: tab === t.id ? C.rose : "#fff",
-      border: `1.5px solid ${tab === t.id ? C.rose : C.border}`,
-      borderRadius: 99, padding: "8px 18px", fontSize: 12,
-      color: tab === t.id ? "#fff" : C.muted,
-      cursor: "pointer", fontFamily: "'DM Mono',monospace",
-      display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s",
-    }}>
-      {t.icon} {t.label}
-    </button>
-  ))}
-</div>
-
-{/* Tab panel */}
-<div style={{ background: "#fff", border: `1.5px solid ${C.border}`, borderRadius: 24, padding: 28, boxShadow: "0 2px 24px #c4536a0a" }}>
-
-  {/* ── BAR CHART ── */}
-  {tab === "bar" && <>
-  <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 30, fontWeight: 700, marginBottom: 4, color: C.text }}>
-    Tech industry insights
-  </h3>
-  <p style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 24 }}>
-    Men vs. women by role in tech
-  </p>
-
-  <div style={{ display: "flex", flexDirection: "column", gap: 40 }}>
-
-    {/* Base salary */}
-<ResponsiveContainer width="100%" height={300}>
-  <BarChart
-    data={[{ label: "Avg Base Salary", women: 105000, men: 138000 }]}
-    margin={{ top: 8, right: 16, left: 0, bottom: 20 }}
-  >
-    <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-    <XAxis dataKey="label" tick={{ fill: C.muted, fontSize: 12 }} />
-    <YAxis tickFormatter={fmt} tick={{ fill: C.muted, fontSize: 11 }} />
-    <Tooltip contentStyle={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 10 }} formatter={(v, name) => [fmt(v), name]} />
-    <Legend wrapperStyle={{ fontSize: 12, color: C.muted, paddingTop: 8 }} />
-    <Bar dataKey="women" name="Women" fill={C.woman} radius={[6, 6, 0, 0]} opacity={0.85} />
-    <Bar dataKey="men"   name="Men"   fill={C.man}   radius={[6, 6, 0, 0]} opacity={0.7}  />
-  </BarChart>
-</ResponsiveContainer>
-
-{/* Promotion probability */}
-<ResponsiveContainer width="100%" height={300}>
-  <BarChart
-    data={[{ label: "Promotion Probability", women: 31, men: 49 }]}
-    margin={{ top: 8, right: 16, left: 0, bottom: 20 }}
-  >
-    <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-    <XAxis dataKey="label" tick={{ fill: C.muted, fontSize: 12 }} />
-    <YAxis domain={[0, 100]} tickFormatter={v => `${v}%`} tick={{ fill: C.muted, fontSize: 11 }} />
-    <Tooltip contentStyle={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 10 }} formatter={(v, name) => [`${v}%`, name]} />
-    <Legend wrapperStyle={{ fontSize: 12, color: C.muted, paddingTop: 8 }} />
-    <Bar dataKey="women" name="Women" fill={C.woman} radius={[6, 6, 0, 0]} opacity={0.85} />
-    <Bar dataKey="men"   name="Men"   fill={C.man}   radius={[6, 6, 0, 0]} opacity={0.7}  />
-  </BarChart>
-</ResponsiveContainer>
-    </div>
-
-
-</>}
-
-  {/* ── CLUSTER ── */}
-  {tab === "cluster" && <>
-    <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 700, marginBottom: 4, color: C.text }}>
-      Salary cluster analysis
-    </h3>
-    <p style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 20 }}>
-      Placeholder · Replace with ML model cluster output
-    </p>
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", background: C.roseSoft, borderRadius: 16, height: 320, border: `1px solid ${C.border}` }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 48, marginBottom: 12 }}>🔵</div>
-        <p style={{ fontFamily: "'DM Mono',monospace", fontSize: 12, color: C.muted }}>Cluster image goes here</p>
-        <p style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: C.border, marginTop: 6 }}>[ drop in your cluster plot image ]</p>
+      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+        {TABS.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={{
+            background: tab === t.id ? C.rose : "#fff",
+            border: `1.5px solid ${tab === t.id ? C.rose : C.border}`,
+            borderRadius: 99, padding: "8px 18px", fontSize: 12,
+            color: tab === t.id ? "#fff" : C.muted,
+            cursor: "pointer", fontFamily: "'DM Mono',monospace",
+            display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s",
+          }}>
+            {t.label}
+          </button>
+        ))}
       </div>
-    </div>
-  </>}
 
-  {/* ── LINE CHART ── */}
-  {tab === "line" && <>
-    <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 700, marginBottom: 4, color: C.text }}>
-      Salary over time
-    </h3>
-    <p style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 20 }}>
-      Projected salary trajectory: men vs women 
-    </p>
-    <ResponsiveContainer width="100%" height={280}>
-      <AreaChart data={traj} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-        <defs>
-          {[["wG", C.woman], ["mG", C.man]].map(([id, col]) => (
-            <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%"  stopColor={col} stopOpacity={0.2} />
-              <stop offset="95%" stopColor={col} stopOpacity={0} />
-            </linearGradient>
-          ))}
-        </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-        <XAxis dataKey="age" tick={{ fill: C.muted, fontSize: 11 }} />
-        <YAxis tickFormatter={fmt} tick={{ fill: C.muted, fontSize: 11 }} />
-        <Tooltip content={<CustomTip />} />
-        <Area type="monotone" dataKey="man"   stroke={C.man}   fill="url(#mG)" strokeWidth={2}   name="Men"   dot={false} />
-        <Area type="monotone" dataKey="woman" stroke={C.woman} fill="url(#wG)" strokeWidth={2.5} name="Women" dot={false} />
-      </AreaChart>
-    </ResponsiveContainer>
-    <div style={{ display: "flex", gap: 18, marginTop: 14, flexWrap: "wrap" }}>
-      {[[C.man, "Men"], [C.woman, "Women"]].map(([col, l]) => (
-        <div key={l} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: C.muted }}>
-          <div style={{ width: 18, height: 2.5, background: col, borderRadius: 2 }} />{l}
-        </div>
-      ))}
-    </div>
-  </>}
+      {/* Tab panel */}
+      <div style={{ background: "#fff", border: `1.5px solid ${C.border}`, borderRadius: 24, padding: 28, boxShadow: "0 2px 24px #c4536a0a" }}>
 
-</div>
+        {/* ── BAR CHART ── */}
+        {tab === "bar" && <>
+          <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 30, fontWeight: 700, marginBottom: 4, color: C.text }}>
+            Your cluster insights
+          </h3>
+          <p style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 24 }}>
+            Cluster-average salary &amp; promotion probability · men vs. women
+          </p>
+
+          {mlLoading ? <LoadingOverlay /> : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 40 }}>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={barSalaryData} margin={{ top: 8, right: 16, left: 0, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                  <XAxis dataKey="label" tick={{ fill: C.muted, fontSize: 12 }} />
+                  <YAxis tickFormatter={fmt} tick={{ fill: C.muted, fontSize: 11 }} />
+                  <Tooltip contentStyle={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 10 }} formatter={(v, name) => [fmt(v), name]} />
+                  <Legend wrapperStyle={{ fontSize: 12, color: C.muted, paddingTop: 8 }} />
+                  <Bar dataKey="women" name="Women" fill={C.woman} radius={[6, 6, 0, 0]} opacity={0.85} />
+                  <Bar dataKey="men"   name="Men"   fill={C.man}   radius={[6, 6, 0, 0]} opacity={0.7}  />
+                </BarChart>
+              </ResponsiveContainer>
+
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={barPromoData} margin={{ top: 8, right: 16, left: 0, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                  <XAxis dataKey="label" tick={{ fill: C.muted, fontSize: 12 }} />
+                  <YAxis domain={[0, 100]} tickFormatter={v => `${v}%`} tick={{ fill: C.muted, fontSize: 11 }} />
+                  <Tooltip contentStyle={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 10 }} formatter={(v, name) => [`${v}%`, name]} />
+                  <Legend wrapperStyle={{ fontSize: 12, color: C.muted, paddingTop: 8 }} />
+                  <Bar dataKey="women" name="Women" fill={C.woman} radius={[6, 6, 0, 0]} opacity={0.85} />
+                  <Bar dataKey="men"   name="Men"   fill={C.man}   radius={[6, 6, 0, 0]} opacity={0.7}  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </>}
+
+        {/* ── CLUSTER ── */}
+        {tab === "cluster" && <>
+          <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 700, marginBottom: 4, color: C.text }}>
+            Salary cluster analysis
+          </h3>
+          <p style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 20 }}>
+            Placeholder · Replace with ML model cluster output
+          </p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", background: C.roseSoft, borderRadius: 16, height: 320, border: `1px solid ${C.border}` }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>🔵</div>
+              <p style={{ fontFamily: "'DM Mono',monospace", fontSize: 12, color: C.muted }}>Cluster image goes here</p>
+              <p style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: C.border, marginTop: 6 }}>[ drop in your cluster plot image ]</p>
+            </div>
+          </div>
+        </>}
+
+        {/* ── LINE CHART ── */}
+        {tab === "line" && <>
+          <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 700, marginBottom: 4, color: C.text }}>
+            Salary over time
+          </h3>
+          <p style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 20 }}>
+            {mlResult ? "20-year projected trajectory · men vs. women" : "Projected salary trajectory: men vs women"}
+          </p>
+
+          {mlLoading ? <LoadingOverlay /> : (
+            <>
+              <ResponsiveContainer width="100%" height={280}>
+                <AreaChart data={lineData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <defs>
+                    {[["wG", C.woman], ["mG", C.man]].map(([id, col]) => (
+                      <linearGradient key={id} id={id} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%"  stopColor={col} stopOpacity={0.2} />
+                        <stop offset="95%" stopColor={col} stopOpacity={0} />
+                      </linearGradient>
+                    ))}
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                  <XAxis dataKey="year" tick={{ fill: C.muted, fontSize: 11 }} label={{ value: mlResult ? "Year" : "Age", position: "insideBottomRight", offset: -4, fill: C.muted, fontSize: 11 }} />
+                  <YAxis tickFormatter={fmt} tick={{ fill: C.muted, fontSize: 11 }} />
+                  <Tooltip content={<CustomTip />} />
+                  <Area type="monotone" dataKey="man"   stroke={C.man}   fill="url(#mG)" strokeWidth={2}   name="Men"   dot={false} />
+                  <Area type="monotone" dataKey="woman" stroke={C.woman} fill="url(#wG)" strokeWidth={2.5} name="Women" dot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+              <div style={{ display: "flex", gap: 18, marginTop: 14, flexWrap: "wrap" }}>
+                {[[C.man, "Men"], [C.woman, "Women"]].map(([col, l]) => (
+                  <div key={l} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: C.muted }}>
+                    <div style={{ width: 18, height: 2.5, background: col, borderRadius: 2 }} />{l}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </>}
+
+      </div>
 
     </div>
   );
@@ -705,6 +723,9 @@ export default function HerPath() {
   });
   const set = (key, val) => setP(prev => ({ ...prev, [key]: val }));
 
+  const [mlResult, setMlResult] = useState(null);
+  const [mlLoading, setMlLoading] = useState(false);
+
   useEffect(() => {
     window.scrollTo(0, 0);
     window.addEventListener("beforeunload", () => sessionStorage.removeItem("started"));
@@ -728,12 +749,8 @@ export default function HerPath() {
     window.scrollTo(0, 0);
   };
 
-  // Derived stats
-  const traj     = genTrajectory(p);
-  const curAge   = parseInt(p.age);
-  const manNow   = traj.find(d => d.age === curAge)?.man || p.starting_salary;
-  const gapPct   = Math.round((1 - p.starting_salary / manNow) * 100);
-  const lifetime = Math.round(traj.reduce((s, d) => s + Math.max(0, (d.man||0) - (d.woman||0)), 0));
+  // Derived stats (fallback trajectory for line chart while API loads)
+  const traj = genTrajectory(p);
 
   const handleAnalyze = async () => {
     const { error } = await supabase.from("user_inputs").insert([{
@@ -746,9 +763,39 @@ export default function HerPath() {
       Current_Job_Level: parseInt(p.job_level),
     }]);
     if (error) console.error("Supabase error:", error);
+
+    setMlLoading(true);
     setFormStep(1);
     setResultsTab("stats");
     window.scrollTo(0, 0);
+
+    try {
+      const apiGender = p.gender === "Female" ? "Female" : "Male";
+      const res = await fetch("/ml-api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          Age: parseInt(p.age),
+          Gender: apiGender,
+          University_GPA: parseFloat(p.gpa),
+          Current_Role: p.specific_role || "Software Engineer",
+          Internships_Completed: parseInt(p.internships),
+          Starting_Salary: parseInt(p.starting_salary),
+          Networking_Score: parseInt(p.networking_score),
+          Current_Job_Level: parseInt(p.job_level),
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMlResult(data);
+      } else {
+        console.error("ML API error:", await res.text());
+      }
+    } catch (err) {
+      console.error("ML API unreachable:", err);
+    } finally {
+      setMlLoading(false);
+    }
   };
 
   // ── HERO ──
@@ -801,7 +848,7 @@ export default function HerPath() {
       />
 
       {resultsTab === "stats" && (
-        <StatsView p={p} traj={traj} manNow={manNow} gapPct={gapPct} lifetime={lifetime} />
+        <StatsView traj={traj} mlResult={mlResult} mlLoading={mlLoading} />
       )}
 
       {resultsTab === "linkedin" && (

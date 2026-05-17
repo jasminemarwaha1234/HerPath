@@ -862,7 +862,6 @@ export default function HerPath() {
     <div style={{
       minHeight: "100vh",
       width: "100%",
-      // backgroundImage: `url(${heroBg})`,
       backgroundImage: "url('/pink2.webp')",
       backgroundSize: "cover",
       backgroundPosition: "center",

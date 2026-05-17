@@ -558,7 +558,7 @@ const LoadingOverlay = () => (
 // ─────────────────────────────────────────────────────────────────────────────
 // LINKEDIN / JOB MATCHES VIEW
 // ─────────────────────────────────────────────────────────────────────────────
-function LinkedInView({ p, jobs }) {
+function LinkedInView({ jobs }) {
   const [filter, setFilter] = useState("All");
   const filters = ["All", "Remote", "Hybrid", "On-site"];
 
@@ -576,7 +576,7 @@ function LinkedInView({ p, jobs }) {
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 32, fontWeight: 800, margin: "0 0 6px", color: C.text }}>
-          Job Matches For {p.name || "You"}
+          Job matches for you
         </h2>
         <p style={{ fontSize: 12, color: C.muted, fontFamily: "'DM Mono',monospace", display: "flex", alignItems: "center", gap: 8 }}>
           {/* {p.zipcode ? `Near ${p.zipcode} · ` : ""}Ranked by pay equity · hardcoded placeholder */}
@@ -648,65 +648,44 @@ function LinkedInView({ p, jobs }) {
               </div>
             </div>
 
-            {/* Salary comparison box */}
-            <div style={{ background: C.roseSoft, borderRadius: 14, padding: "14px 16px", border: `1px solid ${C.border}` }}>
-              <p style={{ fontSize: 9, color: C.muted, fontFamily: "'DM Mono',monospace", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>
-                {/* Salary comparison · {job.title.split("–")[0].trim()} at this company */}
-              </p>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-
-  {/* Women avg column */}
-  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "12px 8px", background: "#fff", borderRight: `1px solid ${C.border}` }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6, justifyContent: "center" }}>
-      {/* <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.rose, flexShrink: 0 }} /> */}
-      <span style={{ fontSize: 18, color: C.muted, fontFamily: "'Cormorant Garamond',serif" }}>Women avg</span>
-    </div>
-    <div style={{ fontSize: 26, fontWeight: 800, color: C.text, fontFamily: "'Cormorant Garamond',serif", lineHeight: 1 }}>{fmt(job.womenAvg)}</div>
-  </div>
-
-  {/* Men avg column */}
-  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "12px 8px", background: "#fff", borderRight: `1px solid ${C.border}` }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6, justifyContent: "center" }}>
-      {/* <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#a89ac4", flexShrink: 0 }} /> */}
-      <span style={{ fontSize: 18, color: C.muted, fontFamily: "'Cormorant Garamond',serif" }}>Men avg</span>
-    </div>
-    <div style={{ fontSize: 26, fontWeight: 800, color: C.text, fontFamily: "'Cormorant Garamond',serif", lineHeight: 1 }}>{fmt(job.menAvg)}</div>
-  </div>
-
-  {/* Your gap column */}
-  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "12px 8px", background: "#fff" }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6, justifyContent: "center" }}>
-      {/* <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.rose, opacity: 0.5, flexShrink: 0 }} /> */}
-      <span style={{ fontSize: 18, color: C.muted, fontFamily: "'Cormorant Garamond',serif" }}>Your gap</span>
-    </div>
-    <div style={{ fontSize: 26, fontWeight: 800, color: C.rose, fontFamily: "'Cormorant Garamond',serif", lineHeight: 1 }}>{fmt(yourGap(job))}/yr</div>
-  </div>
-
-</div>
+            {/* Salary comparison — no pink wrapper, just the 3-column grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "12px 8px", borderRight: `1px solid ${C.border}` }}>
+                <span style={{ fontSize: 11, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 6 }}>Women avg</span>
+                <div style={{ fontSize: 24, fontWeight: 800, color: C.text, fontFamily: "'Cormorant Garamond',serif", lineHeight: 1 }}>{fmt(job.womenAvg)}</div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "12px 8px", borderRight: `1px solid ${C.border}` }}>
+                <span style={{ fontSize: 11, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 6 }}>Men avg</span>
+                <div style={{ fontSize: 24, fontWeight: 800, color: C.text, fontFamily: "'Cormorant Garamond',serif", lineHeight: 1 }}>{fmt(job.menAvg)}</div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "12px 8px" }}>
+                <span style={{ fontSize: 11, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 6 }}>Your gap</span>
+                <div style={{ fontSize: 24, fontWeight: 800, color: C.rose, fontFamily: "'Cormorant Garamond',serif", lineHeight: 1 }}>{fmt(yourGap(job))}/yr</div>
+              </div>
             </div>
 
-            {/* Bottom: icons + apply */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ display: "flex", gap: 18, flex: 1 }}>
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: 17 }}>{workTypeIcon(job.companyType)}</div>
-                  <div style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace" }}>{job.companyType}</div>
-                </div>
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: 17 }}>{workTypeIcon(job.workType)}</div>
-                  <div style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace" }}>{job.workType}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, color: C.muted }}>Posted</div>
-                  <div style={{ fontSize: 12, color: C.text, fontWeight: 500 }}>{job.posted}</div>
-                </div>
+            {/* Bottom: inline chips + apply */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ display: "flex", gap: 6, flex: 1, flexWrap: "wrap" }}>
+                {[job.companyType, job.workType].map(tag => (
+                  <span key={tag} style={{
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    background: "#f9f1f3", border: `1px solid ${C.border}`,
+                    borderRadius: 99, padding: "4px 10px",
+                    fontSize: 11, color: C.muted, fontFamily: "'DM Mono',monospace",
+                  }}>
+                    {workTypeIcon(tag)} {tag}
+                  </span>
+                ))}
+                <span style={{ fontSize: 11, color: C.muted, fontFamily: "'DM Mono',monospace", alignSelf: "center", marginLeft: 2 }}>
+                  Posted {job.posted}
+                </span>
               </div>
               <button style={{
                 background: C.rose, color: "#fff", border: "none",
                 borderRadius: 10, padding: "10px 18px", fontSize: 13,
                 fontWeight: 600, cursor: "pointer",
-                fontFamily: "'DM Sans',sans-serif", whiteSpace: "nowrap",
+                fontFamily: "'DM Sans',sans-serif", whiteSpace: "nowrap", flexShrink: 0,
               }}
                 onMouseEnter={e => e.currentTarget.style.background = C.roseDark}
                 onMouseLeave={e => e.currentTarget.style.background = C.rose}

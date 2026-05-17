@@ -365,6 +365,12 @@ function ResultsNav({ active, setActive, onHome }) {
 //   const curAge = parseInt(p.age);
 //   const JOB_LEVEL_LABEL = JOB_LEVELS.find(j => j.value === p.job_level)?.label ?? "—";
 
+const LoadingOverlay = () => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 300, color: C.muted, fontFamily: "'DM Mono',monospace", fontSize: 12 }}>
+      Running model…
+    </div>
+  );
+  
   function StatsView({ traj, mlResult, mlLoading }) {
   const [tab, setTab] = useState("bar");
 
@@ -393,11 +399,11 @@ function ResultsNav({ active, setActive, onHome }) {
       }))
     : traj.map(d => ({ year: d.age, woman: d.woman, man: d.man }));
 
-  const LoadingOverlay = () => (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 300, color: C.muted, fontFamily: "'DM Mono',monospace", fontSize: 12 }}>
-      Running model…
-    </div>
-  );
+  // const LoadingOverlay = () => (
+  //   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 300, color: C.muted, fontFamily: "'DM Mono',monospace", fontSize: 12 }}>
+  //     Running model…
+  //   </div>
+  // );
 
   return (
     <div style={{ maxWidth: 860, margin: "0 auto", padding: "36px 24px 80px" }}>
@@ -465,15 +471,19 @@ function ResultsNav({ active, setActive, onHome }) {
             Salary cluster analysis
           </h3>
           <p style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 20 }}>
-            Placeholder · Replace with ML model cluster output
+            Where you fall among similar professionals
           </p>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", background: C.roseSoft, borderRadius: 16, height: 320, border: `1px solid ${C.border}` }}>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>🔵</div>
-              <p style={{ fontFamily: "'DM Mono',monospace", fontSize: 12, color: C.muted }}>Cluster image goes here</p>
-              <p style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: C.border, marginTop: 6 }}>[ drop in your cluster plot image ]</p>
+          {mlLoading ? <LoadingOverlay /> : mlResult?.cluster_image_path ? (
+            <img
+              src={`/ml-api/output/user_results/${mlResult.cluster_image_path.split("/").pop()}?t=${mlResult._ts}`}
+              alt="Salary cluster analysis"
+              style={{ width: "100%", borderRadius: 16, border: `1px solid ${C.border}` }}
+            />
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", background: C.roseSoft, borderRadius: 16, height: 320, border: `1px solid ${C.border}` }}>
+              <p style={{ fontFamily: "'DM Mono',monospace", fontSize: 12, color: C.muted }}>Submit the form to see your cluster</p>
             </div>
-          </div>
+          )}
         </>}
 
         {/* ── LINE CHART ── */}
@@ -787,7 +797,7 @@ export default function HerPath() {
       });
       if (res.ok) {
         const data = await res.json();
-        setMlResult(data);
+        setMlResult({ ...data, _ts: Date.now() });
       } else {
         console.error("ML API error:", await res.text());
       }

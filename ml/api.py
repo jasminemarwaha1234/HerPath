@@ -38,6 +38,7 @@ import joblib
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from typing import List
 from supabase import create_client
@@ -187,6 +188,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/output", StaticFiles(directory=str(OUT_DIR)), name="output")
 
 
 @app.post('/analyze', response_model=AnalysisResult)

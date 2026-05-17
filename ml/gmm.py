@@ -6,8 +6,9 @@ from sklearn.preprocessing import StandardScaler
 from itertools import product
 from pathlib import Path
 
-DATA_PATH = Path(__file__).parent.parent / 'data' / 'education_career_success.csv'
-OUT_DIR   = Path(__file__).parent / 'output'
+DATA_PATH   = Path(__file__).parent.parent / 'data' / 'education_career_success.csv'
+IT_DATA_PATH = Path(__file__).parent.parent / 'data' / 'US_information_technology.csv'
+OUT_DIR     = Path(__file__).parent / 'output'
 
 LEVEL_ORDER = {'Entry': 0, 'Mid': 1, 'Senior': 2, 'Executive': 3}
 
@@ -20,7 +21,7 @@ PARAM_GRID = {
 
 
 def curr_probability(role):
-    df = pd.read_csv("data/US_information_technology.csv")
+    df = pd.read_csv(IT_DATA_PATH)
     role_df = df[df["from"] == role]
     if role_df.empty:
         return 0.5
@@ -150,7 +151,7 @@ def promotion_chain(role, gmm, scaler, age, university_gpa, internships_complete
     Walk the most likely promotion path from role (highest-frequency next role at each step)
     where promotion_prob >= 0.8. Returns a flat list: [{'from', 'to', 'female_prob', 'male_prob'}, ...]
     """
-    it_df   = pd.read_csv("data/US_information_technology.csv")
+    it_df   = pd.read_csv(IT_DATA_PATH)
     chain   = []
     visited = set()
     current = role

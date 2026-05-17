@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('Agg')
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -177,7 +179,7 @@ def promotion_chain(role, gmm, scaler, age, university_gpa, internships_complete
 
 
 def career_timeline(role, gmm, scaler, age, university_gpa, internships_completed,
-                    networking_score, starting_salary, current_job_level, years=10):
+                    networking_score, starting_salary, current_job_level, years=20):
     """
     Project a year-by-year career trajectory for one person over `years` years.
 
@@ -196,62 +198,58 @@ def career_timeline(role, gmm, scaler, age, university_gpa, internships_complete
                             internships_completed, networking_score,
                             starting_salary, current_job_level)
 
-    # Annotate each chain step with how many years the person stays in that role.
-    steps = []
-    for step in chain:
-        avg_prob = (step['female_prob'] + step['male_prob']) / 2
-        yrs = max(1, round(1 / avg_prob)) if avg_prob > 0 else years
-        steps.append({**step, 'years_in_role': yrs})
+    def _yrs(prob):
+        # higher prob → promoted sooner; range 2–8 yrs
+        return max(2, min(8, round(3 / prob))) if prob > 0 else years
 
-    start_probs = predict_single(gmm, scaler, age, university_gpa, internships_completed,
-                                 networking_score, starting_salary, current_job_level, role)
-    gap_score    = start_probs['female']['gap_score']
-    salary_f     = float(starting_salary)
-    salary_m     = float(starting_salary)
-    current_role = role
-    step_idx     = 0
-    years_in_current = 0
-    timeline     = []
+    # Separate tenure per gender per step
+    steps = [{**s, 'f_yrs': _yrs(s['female_prob']), 'm_yrs': _yrs(s['male_prob'])}
+             for s in chain]
+
+    start_probs  = predict_single(gmm, scaler, age, university_gpa, internships_completed,
+                                  networking_score, starting_salary, current_job_level, role)
+    gap_score_f  = start_probs['female']['gap_score']
+    gap_score_m  = gap_score_f
+
+    salary_f, salary_m   = float(starting_salary), float(starting_salary)
+    f_step, m_step       = 0, 0
+    f_years_in, m_years_in = 0, 0
+    f_role, m_role       = role, role
+    female, male         = [], []
 
     for year in range(1, years + 1):
-        if step_idx < len(steps):
-            f_prob = steps[step_idx]['female_prob']
-            m_prob = steps[step_idx]['male_prob']
-        elif steps:
-            f_prob = steps[-1]['female_prob']
-            m_prob = steps[-1]['male_prob']
-        else:
-            f_prob = m_prob = 0.5
+        salary_f   *= (1 + ANNUAL_RAISE * (1 - 0.5 * gap_score_f))
+        salary_m   *= (1 + ANNUAL_RAISE * (1 + 0.5 * gap_score_m))
+        f_years_in += 1
+        m_years_in += 1
 
-        # Gap widens raise rates: females get slightly less, males slightly more.
-        salary_f *= (1 + ANNUAL_RAISE * (1 - 0.5 * gap_score))
-        salary_m *= (1 + ANNUAL_RAISE * (1 + 0.5 * gap_score))
-        years_in_current += 1
+        f_promoted = f_step < len(steps) and f_years_in >= steps[f_step]['f_yrs']
+        m_promoted = m_step < len(steps) and m_years_in >= steps[m_step]['m_yrs']
 
-        timeline.append({
-            'year':                  year,
-            'age':                   age + year - 1,
-            'role':                  current_role,
-            'female_salary':         round(salary_f, 2),
-            'male_salary':           round(salary_m, 2),
-            'female_promotion_prob': round(f_prob, 4),
-            'male_promotion_prob':   round(m_prob, 4),
-            'gap_score':             round(gap_score, 4),
-        })
+        if f_promoted:
+            salary_f  *= (1 + PROMO_BUMP)
+            f_role     = steps[f_step]['to']
+            f_step    += 1
+            f_years_in = 0
+            gap_score_f = predict_single(gmm, scaler, age + year - 1, university_gpa,
+                                         internships_completed, networking_score,
+                                         round(salary_f), current_job_level, f_role)['female']['gap_score']
 
-        # Advance role when the expected tenure expires.
-        if step_idx < len(steps) and years_in_current >= steps[step_idx]['years_in_role']:
-            salary_f     *= (1 + PROMO_BUMP)
-            salary_m     *= (1 + PROMO_BUMP)
-            current_role  = steps[step_idx]['to']
-            step_idx     += 1
-            years_in_current = 0
-            new_probs    = predict_single(gmm, scaler, age + year - 1, university_gpa,
-                                          internships_completed, networking_score,
-                                          round(salary_f), current_job_level, current_role)
-            gap_score    = new_probs['female']['gap_score']
+        if m_promoted:
+            salary_m  *= (1 + PROMO_BUMP)
+            m_role     = steps[m_step]['to']
+            m_step    += 1
+            m_years_in = 0
+            gap_score_m = predict_single(gmm, scaler, age + year - 1, university_gpa,
+                                         internships_completed, networking_score,
+                                         round(salary_m), current_job_level, m_role)['male']['gap_score']
 
-    return timeline
+        female.append({'year': year, 'salary': round(salary_f, 2),
+                       **({'role': f_role} if f_promoted else {})})
+        male.append  ({'year': year, 'salary': round(salary_m, 2),
+                       **({'role': m_role} if m_promoted else {})})
+
+    return female, male
 
 
 def cluster_probabilities(gmm, scaler, age, university_gpa, internships_completed,
@@ -263,6 +261,43 @@ def cluster_probabilities(gmm, scaler, age, university_gpa, internships_complete
     probs = gmm.predict_proba(scaler.transform(row))[0]
     return {f"Cluster {i}": round(float(p), 4) for i, p in enumerate(probs)}
 
+
+
+# ── Cluster characterisation ──────────────────────────────────────────────────
+
+_FEATURE_LABELS = {
+    'Starting_Salary':        ('High Income',    'Low Income'),
+    'University_GPA':         ('High GPA',       'Low GPA'),
+    'Networking_Score':       ('Well Connected', 'Low Network'),
+    'Internships_Completed':  ('Experienced',    'Less Exp.'),
+    'Current_Job_Level':      ('Senior Level',   'Entry Level'),
+    'Age':                    ('Older',          'Younger'),
+}
+
+def cluster_descriptors(df, labels, n_tags=2):
+    """
+    Return a dict {cluster_id: 'Tag1 · Tag2'} describing each cluster
+    by its most distinctive features (highest absolute z-score vs overall mean).
+    """
+    tagged = df.copy()
+    tagged['Current_Job_Level'] = tagged['Current_Job_Level'].map(LEVEL_ORDER)
+    tagged['Cluster'] = labels
+    features = list(_FEATURE_LABELS.keys())
+
+    overall_mean = tagged[features].mean()
+    overall_std  = tagged[features].std().replace(0, 1)
+
+    descriptors = {}
+    for k in sorted(tagged['Cluster'].unique()):
+        cluster_mean = tagged[tagged['Cluster'] == k][features].mean()
+        z = (cluster_mean - overall_mean) / overall_std
+        top = z.abs().nlargest(n_tags).index
+        tags = []
+        for feat in top:
+            hi, lo = _FEATURE_LABELS[feat]
+            tags.append(hi if z[feat] > 0 else lo)
+        descriptors[k] = ' · '.join(tags)
+    return descriptors
 
 
 # ── Analysis ──────────────────────────────────────────────────────────────────
@@ -309,25 +344,200 @@ def gender_gap_analysis(df, gender_raw, labels):
 
 # ── Plots ─────────────────────────────────────────────────────────────────────
 
-def plot_pca(X, labels, gmm, best_row):
+# Soft palette — works on dark background
+_PALETTE = [
+    '#FF6B9D', '#C77DFF', '#48CAE4', '#F4A261', '#57CC99',
+    '#FFD166', '#EF476F',
+]
+
+
+def _gauss_pdf_2d(xy_flat, mean, cov):
+    """Evaluate 2-D Gaussian PDF on a flat (N,2) grid."""
+    diff = xy_flat - mean
+    inv  = np.linalg.inv(cov)
+    exp  = -0.5 * np.einsum('ni,ij,nj->n', diff, inv, diff)
+    det  = np.linalg.det(cov)
+    return np.exp(exp) / (2 * np.pi * np.sqrt(np.abs(det)))
+
+
+def plot_pca(X, labels, gmm, best_row, df=None):
+    from matplotlib.colors import LinearSegmentedColormap
+
     pca        = PCA(n_components=2)
     X_2d       = pca.fit_transform(X)
     centers_2d = pca.transform(gmm.means_)
+    W          = pca.components_
 
-    plt.figure(figsize=(8, 6))
-    sc = plt.scatter(X_2d[:, 0], X_2d[:, 1], c=labels, cmap='tab10',
-                     s=50, edgecolor='k', linewidth=0.3, alpha=0.8)
-    plt.scatter(centers_2d[:, 0], centers_2d[:, 1],
-                s=300, c='red', marker='X', label='Centers', zorder=5)
-    plt.colorbar(sc, label='Cluster')
-    plt.title(f"GMM Clustering — PCA projection\n"
-              f"n={int(best_row.n_components)}, cov={best_row.covariance_type}")
-    plt.xlabel(f"PC1 ({pca.explained_variance_ratio_[0]*100:.1f}% var)")
-    plt.ylabel(f"PC2 ({pca.explained_variance_ratio_[1]*100:.1f}% var)")
-    plt.legend()
-    plt.grid(True)
+    n_clusters = int(best_row.n_components)
+    colors     = _PALETTE[:n_clusters]
+
+    # Build a dense grid over the PCA plane
+    pad  = 0.8
+    x_lo, x_hi = X_2d[:, 0].min() - pad, X_2d[:, 0].max() + pad
+    y_lo, y_hi = X_2d[:, 1].min() - pad, X_2d[:, 1].max() + pad
+    gx, gy     = np.meshgrid(np.linspace(x_lo, x_hi, 400),
+                              np.linspace(y_lo, y_hi, 400))
+    grid       = np.column_stack([gx.ravel(), gy.ravel()])
+
+    fig, ax = plt.subplots(figsize=(11, 8))
+    fig.patch.set_facecolor('white')
+    ax.set_facecolor('#f7f7fb')
+
+    # --- per-cluster smooth density fill + contour lines ---
+    for k in range(n_clusters):
+        hex_col = colors[k]
+        r, g, b = tuple(int(hex_col.lstrip('#')[i:i+2], 16) / 255 for i in (0, 2, 4))
+
+        cov_full = (
+            gmm.covariances_[k]                        if gmm.covariance_type == 'full'      else
+            np.diag(gmm.covariances_[k])               if gmm.covariance_type == 'diag'      else
+            gmm.covariances_[k] * np.eye(X.shape[1])  if gmm.covariance_type == 'spherical' else
+            gmm.covariances_ * np.eye(X.shape[1])
+        )
+        cov_2d = W @ cov_full @ W.T
+        pdf    = _gauss_pdf_2d(grid, centers_2d[k], cov_2d).reshape(gx.shape)
+        pdf    = pdf / pdf.max()  # normalise to [0,1] per cluster
+
+        # transparent-to-color fill
+        cmap_k = LinearSegmentedColormap.from_list(
+            f'c{k}', [(r, g, b, 0.0), (r, g, b, 0.38)], N=256)
+        ax.contourf(gx, gy, pdf, levels=30, cmap=cmap_k, zorder=1)
+
+        # glowing vine contour lines
+        for lev, lw, alpha in [(0.25, 0.6, 0.35), (0.55, 1.0, 0.6), (0.82, 1.6, 0.9)]:
+            ax.contour(gx, gy, pdf, levels=[lev],
+                       colors=[hex_col], linewidths=lw, alpha=alpha, zorder=2)
+
+    # --- scatter points ---
+    descs = cluster_descriptors(df, labels) if df is not None else {}
+    for k in range(n_clusters):
+        mask = labels == k
+        ax.scatter(X_2d[mask, 0], X_2d[mask, 1],
+                   color=colors[k], s=120, alpha=0.12, zorder=3, linewidths=0)
+        label = f'Cluster {k}' + (f'  {descs[k]}' if k in descs else '')
+        ax.scatter(X_2d[mask, 0], X_2d[mask, 1],
+                   color=colors[k], s=28, edgecolors='white', linewidths=0.3,
+                   alpha=0.85, label=label, zorder=4)
+
+
+    # --- styling ---
+    ax.tick_params(color='#aaa', labelsize=9, labelcolor='#444')
+    ax.set_xlabel(f"PC1  ({pca.explained_variance_ratio_[0]*100:.1f}% var)", color='#333', fontsize=11)
+    ax.set_ylabel(f"PC2  ({pca.explained_variance_ratio_[1]*100:.1f}% var)", color='#333', fontsize=11)
+    ax.set_title(f"GMM Clusters — PCA projection  ·  n={n_clusters}, cov={best_row.covariance_type}",
+                 color='#111', fontsize=13, pad=14)
+    for spine in ax.spines.values():
+        spine.set_edgecolor('#ccc')
+
+    ax.legend(loc='upper left', fontsize=8, framealpha=0.7,
+              facecolor='white', edgecolor='#ccc', labelcolor='#222',
+              markerscale=1.2)
+    ax.grid(True, color='#ddd', linewidth=0.5, alpha=0.8)
+    ax.set_xlim(x_lo, x_hi)
+    ax.set_ylim(y_lo, y_hi)
+
     plt.tight_layout()
-    plt.show()
+    out_path = OUT_DIR / 'clusters_pca.png'
+    plt.savefig(out_path, dpi=150, facecolor=fig.get_facecolor())
+    plt.close()
+    print(f"Cluster plot saved → {out_path}")
+
+
+def plot_user_on_clusters(X, labels, gmm, scaler, best_row,
+                          age, university_gpa, internships_completed,
+                          networking_score, starting_salary, current_job_level,
+                          df=None):
+    """
+    Re-render the cluster plot and stamp an X at the user's projected PCA position.
+    Returns the assigned cluster index.
+    """
+    from matplotlib.colors import LinearSegmentedColormap
+
+    pca        = PCA(n_components=2)
+    X_2d       = pca.fit_transform(X)
+    centers_2d = pca.transform(gmm.means_)
+    W          = pca.components_
+
+    # project the user
+    level_enc = LEVEL_ORDER[current_job_level]
+    user_raw  = np.array([[age, university_gpa, internships_completed,
+                           networking_score, starting_salary, level_enc]], dtype=float)
+    user_scaled = scaler.transform(user_raw)
+    user_cluster = int(gmm.predict(user_scaled)[0])
+    user_2d      = pca.transform(user_scaled)[0]
+
+    n_clusters = int(best_row.n_components)
+    colors     = _PALETTE[:n_clusters]
+
+    pad  = 0.8
+    x_lo, x_hi = X_2d[:, 0].min() - pad, X_2d[:, 0].max() + pad
+    y_lo, y_hi = X_2d[:, 1].min() - pad, X_2d[:, 1].max() + pad
+    gx, gy     = np.meshgrid(np.linspace(x_lo, x_hi, 400),
+                              np.linspace(y_lo, y_hi, 400))
+    grid       = np.column_stack([gx.ravel(), gy.ravel()])
+
+    fig, ax = plt.subplots(figsize=(11, 8))
+    fig.patch.set_facecolor('white')
+    ax.set_facecolor('#f7f7fb')
+
+    for k in range(n_clusters):
+        hex_col = colors[k]
+        r, g, b = tuple(int(hex_col.lstrip('#')[i:i+2], 16) / 255 for i in (0, 2, 4))
+        cov_full = (
+            gmm.covariances_[k]                        if gmm.covariance_type == 'full'      else
+            np.diag(gmm.covariances_[k])               if gmm.covariance_type == 'diag'      else
+            gmm.covariances_[k] * np.eye(X.shape[1])  if gmm.covariance_type == 'spherical' else
+            gmm.covariances_ * np.eye(X.shape[1])
+        )
+        cov_2d = W @ cov_full @ W.T
+        pdf    = _gauss_pdf_2d(grid, centers_2d[k], cov_2d).reshape(gx.shape)
+        pdf    = pdf / pdf.max()
+
+        cmap_k = LinearSegmentedColormap.from_list(
+            f'c{k}', [(r, g, b, 0.0), (r, g, b, 0.38)], N=256)
+        ax.contourf(gx, gy, pdf, levels=30, cmap=cmap_k, zorder=1)
+        for lev, lw, alpha in [(0.25, 0.6, 0.35), (0.55, 1.0, 0.6), (0.82, 1.6, 0.9)]:
+            ax.contour(gx, gy, pdf, levels=[lev],
+                       colors=[hex_col], linewidths=lw, alpha=alpha, zorder=2)
+
+    descs = cluster_descriptors(df, labels) if df is not None else {}
+    for k in range(n_clusters):
+        mask = labels == k
+        ax.scatter(X_2d[mask, 0], X_2d[mask, 1],
+                   color=colors[k], s=120, alpha=0.12, zorder=3, linewidths=0)
+        label = f'Cluster {k}' + (f'  {descs[k]}' if k in descs else '')
+        ax.scatter(X_2d[mask, 0], X_2d[mask, 1],
+                   color=colors[k], s=28, edgecolors='white', linewidths=0.3,
+                   alpha=0.85, label=label, zorder=4)
+
+
+    # user X marker
+    user_color = colors[user_cluster]
+    ax.scatter(*user_2d, s=400, marker='X', color=user_color,
+               edgecolors='black', linewidths=1.5, zorder=7)
+    ax.annotate(f'You (cluster {user_cluster})', xy=user_2d,
+                fontsize=9, color='#111', fontweight='bold',
+                xytext=(user_2d[0] + 0.15, user_2d[1] + 0.12), zorder=8)
+
+    ax.tick_params(color='#aaa', labelsize=9, labelcolor='#444')
+    ax.set_xlabel(f"PC1  ({pca.explained_variance_ratio_[0]*100:.1f}% var)", color='#333', fontsize=11)
+    ax.set_ylabel(f"PC2  ({pca.explained_variance_ratio_[1]*100:.1f}% var)", color='#333', fontsize=11)
+    ax.set_title(f"GMM Clusters — your position marked  ·  n={n_clusters}, cov={best_row.covariance_type}",
+                 color='#111', fontsize=13, pad=14)
+    for spine in ax.spines.values():
+        spine.set_edgecolor('#ccc')
+    ax.legend(loc='upper left', fontsize=8, framealpha=0.7,
+              facecolor='white', edgecolor='#ccc', labelcolor='#222', markerscale=1.2)
+    ax.grid(True, color='#ddd', linewidth=0.5, alpha=0.8)
+    ax.set_xlim(x_lo, x_hi)
+    ax.set_ylim(y_lo, y_hi)
+
+    plt.tight_layout()
+    out_path = OUT_DIR / 'clusters_user.png'
+    plt.savefig(out_path, dpi=150, facecolor=fig.get_facecolor())
+    plt.close()
+    print(f"User cluster plot saved → {out_path}  (cluster {user_cluster})")
+    return user_cluster
 
 
 def plot_bic_aic(results_df):
@@ -382,7 +592,23 @@ def plot_gender_gap(gap_df, all_clusters, gap_scores):
 if __name__ == '__main__':
     df                    = load_data()
     X, scaler, gender_raw = preprocess(df)
-    gmm, _                = load_or_train(X, scaler)
+    gmm, results_df       = load_or_train(X, scaler)
+
+    labels = predict_batch(X, gmm)
+    best_row = results_df.iloc[0]
+    plot_pca(X, labels, gmm, best_row, df=df)
+
+    gap_df, all_clusters, gap_scores = gender_gap_analysis(df, gender_raw, labels)
+
+    sample = {
+        'age': 23,
+        'university_gpa': 3.5,
+        'internships_completed': 2,
+        'networking_score': 7,
+        'starting_salary': 72000,
+        'current_job_level': 'Mid',
+    }
+    plot_user_on_clusters(X, labels, gmm, scaler, best_row, **sample, df=df)
 
     sample = {
         'age': 23,
@@ -394,7 +620,6 @@ if __name__ == '__main__':
         'role': 'Software Engineer',
     }
 
-    timeline = career_timeline(sample['role'], gmm, scaler,
-                               **{k: v for k, v in sample.items() if k != 'role'})
-    for pt in timeline:
-        print(pt)
+    female, male = career_timeline(sample['role'], gmm, scaler,
+                                   **{k: v for k, v in sample.items() if k != 'role'})
+

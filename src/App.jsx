@@ -441,7 +441,7 @@ const LoadingOverlay = () => (
         {/* ── BAR CHART ── */}
         {tab === "bar" && <>
           <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 30, fontWeight: 700, marginBottom: 4, color: C.text }}>
-            Your cluster insights
+            Pay Gap Analysis
           </h3>
           <p style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 24 }}>
             Cluster-average salary &amp; promotion probability · men vs. women
@@ -478,7 +478,7 @@ const LoadingOverlay = () => (
 
         {/* ── CLUSTER ── */}
         {tab === "cluster" && <>
-          <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 700, marginBottom: 4, color: C.text }}>
+          <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 30, fontWeight: 700, marginBottom: 4, color: C.text }}>
             Salary cluster analysis
           </h3>
           <p style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 20 }}>
@@ -499,8 +499,8 @@ const LoadingOverlay = () => (
 
         {/* ── LINE CHART ── */}
         {tab === "line" && <>
-          <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 700, marginBottom: 4, color: C.text }}>
-            Salary over time
+          <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 30, fontWeight: 700, marginBottom: 4, color: C.text }}>
+            Progression over time
           </h3>
           <p style={{ fontSize: 10, color: C.muted, fontFamily: "'DM Mono',monospace", marginBottom: 20 }}>
             {mlResult ? "20-year projected trajectory · men vs. women" : "Projected salary trajectory: men vs women"}

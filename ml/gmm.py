@@ -584,7 +584,10 @@ def plot_gender_gap(gap_df, all_clusters, gap_scores):
 
     plt.suptitle("Gender Salary Gap Across Clusters", fontsize=13)
     plt.tight_layout()
-    plt.show()
+    out_path = OUT_DIR / 'gender_gap_bar.png'
+    plt.savefig(out_path, dpi=150)
+    plt.close()
+    print(f"Gender gap bar chart saved → {out_path}")
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -599,6 +602,7 @@ if __name__ == '__main__':
     plot_pca(X, labels, gmm, best_row, df=df)
 
     gap_df, all_clusters, gap_scores = gender_gap_analysis(df, gender_raw, labels)
+    plot_gender_gap(gap_df, all_clusters, gap_scores)
 
     sample = {
         'age': 23,

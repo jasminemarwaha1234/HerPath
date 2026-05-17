@@ -475,7 +475,7 @@ const LoadingOverlay = () => (
           </p>
           {mlLoading ? <LoadingOverlay /> : mlResult?.cluster_image_path ? (
             <img
-              src={`/ml-api/output/user_results/${mlResult.cluster_image_path.split("/").pop()}`}
+              src={`/ml-api/output/user_results/${mlResult.cluster_image_path.split("/").pop()}?t=${mlResult._ts}`}
               alt="Salary cluster analysis"
               style={{ width: "100%", borderRadius: 16, border: `1px solid ${C.border}` }}
             />
@@ -797,7 +797,7 @@ export default function HerPath() {
       });
       if (res.ok) {
         const data = await res.json();
-        setMlResult(data);
+        setMlResult({ ...data, _ts: Date.now() });
       } else {
         console.error("ML API error:", await res.text());
       }
